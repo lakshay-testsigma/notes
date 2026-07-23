@@ -1,0 +1,57 @@
+---
+title: "TITLE — what the reader will understand"
+domain: "web"                 # web | mobile | data-science | data-analytics | ai-engineering
+summary: "One line: what you grasp in 30 seconds."
+tags: ["tag1", "tag2"]
+difficulty: "beginner"        # beginner | intermediate | advanced
+updated: "YYYY-MM-DD"
+icon: "🧩"
+---
+
+<Analogy>
+Hook the reader in one sentence. Compare the concept to something everyday
+("A cache is a sticky note on your monitor — instant, but goes stale.").
+</Analogy>
+
+<TLDR>
+- The single most important takeaway.
+- The second thing worth knowing.
+- The gotcha or when-to-use.
+</TLDR>
+
+<Diagram caption="What this shows in one line" chart={`
+flowchart LR
+  A([Input]) --> B{Decision}
+  B -->|case 1| C[Result A]
+  B -->|case 2| D[Result B]
+`} />
+
+## Concept one
+
+Two lines, max. State the idea; let the visual and code do the work.
+
+<CodeBlock lang="tsx" title="The idea in code">
+{`function example() {
+  // minimal, realistic, correct
+  return "clear over clever";
+}`}
+</CodeBlock>
+
+## Concept two
+
+<Chart data={[{ month: "Jan", value: 42 }, { month: "Feb", value: 55 }, { month: "Mar", value: 61 }]} />
+
+<Callout type="tip">One practical tip or common mistake.</Callout>
+
+{/* Include a formula only if the topic is mathematical: */}
+<Formula tex={"\\text{cost} = O(n \\log n)"} caption="Plain-language reading of the formula." />
+
+## Real-world example
+
+Where this shows up in a real system, in 2–3 lines + a snippet or diagram.
+
+## In 30 seconds
+
+- Recap bullet one.
+- Recap bullet two.
+- Recap bullet three.
