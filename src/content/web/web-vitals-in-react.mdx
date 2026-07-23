@@ -1,0 +1,160 @@
+---
+title: "Web Vitals in React — measure what users actually feel"
+domain: "web"
+summary: "LCP, INP, CLS: what they mean, how to capture them in a React SPA, and the re-render traps that skew them."
+tags: ["react", "performance", "web-vitals", "core-web-vitals"]
+difficulty: "intermediate"
+updated: "2026-07-23"
+icon: "⚡"
+---
+
+<Analogy>
+Core Web Vitals are a doctor's checkup for your page: LCP is how fast the
+patient walks in, INP is the reflex-hammer response, and CLS is whether they
+can stand still without wobbling.
+</Analogy>
+
+<TLDR>
+- Three field metrics: **LCP** (loading), **INP** (responsiveness), **CLS** (visual stability).
+- Chrome grades the **75th percentile** of real users — lab numbers don't count.
+- Capture them with the `web-vitals` library in a component mounted once.
+- Values finalize **per page load** — SPA route changes aren't re-measured; dedupe reports by `metric.id`.
+- Long React renders are the top INP killer — mark heavy updates with `startTransition`.
+</TLDR>
+
+<Diagram caption="One page load = one report per metric; final values flush when the tab hides." chart={`
+flowchart TD
+  A([Page load]) --> B[LCP locks on largest paint]
+  B --> C[User interacts]
+  C --> D[INP samples each interaction]
+  A --> E[Unexpected shifts happen]
+  E --> F[CLS tracks worst burst]
+  D --> G([Tab hidden / unload])
+  F --> G
+  G --> H[[Final values reported]]
+`} />
+
+## The three vitals
+
+Each metric has a "good" and "poor" threshold; between them is "needs improvement".
+
+| Metric | Measures | Good (p75) | Poor |
+| ------ | -------- | ---------- | ---- |
+| **LCP** | Time until the largest element paints | ≤ 2.5 s | > 4.0 s |
+| **INP** | Worst interaction-to-next-paint delay | ≤ 200 ms | > 500 ms |
+| **CLS** | Largest burst of unexpected layout shifts | ≤ 0.1 | > 0.25 |
+
+## Capture them in React
+
+Mount one client component that registers the observers a single time.
+
+<CodeBlock lang="tsx" title="app/web-vitals.tsx — mount once, near the root">
+{`"use client";
+import { useEffect } from "react";
+import { onCLS, onINP, onLCP, type Metric } from "web-vitals";
+
+function report(metric: Metric) {
+  console.log(metric.name, metric.value, metric.rating);
+}
+
+export function WebVitals() {
+  useEffect(() => {
+    // Empty deps: re-registering observers double-counts metrics.
+    onLCP(report);
+    onINP(report);
+    onCLS(report);
+  }, []);
+  return null;
+}`}
+</CodeBlock>
+
+<Callout type="info">
+In Next.js, `useReportWebVitals` from `next/web-vitals` wraps this exact
+pattern for you.
+</Callout>
+
+## Why p75, not the average
+
+<Chart
+  valueLabel="LCP (s)"
+  caption="Chrome scores the 75th percentile — a healthy median can still fail Core Web Vitals."
+  data={[
+    { label: "p50", value: 1.9 },
+    { label: "p75", value: 2.6 },
+    { label: "p90", value: 4.1 },
+  ]}
+/>
+
+## Ship to analytics
+
+Interactions near tab-close are the worst ones — use a beacon so the report
+survives page dismissal.
+
+<CodeBlock lang="ts" title="Beacon, not fetch">
+{`import type { Metric } from "web-vitals";
+
+function report(metric: Metric) {
+  const body = JSON.stringify({
+    name: metric.name,     // "LCP" | "INP" | "CLS"
+    value: metric.value,
+    rating: metric.rating, // "good" | "needs-improvement" | "poor"
+    id: metric.id,         // unique per page load — dedupe on this
+  });
+  navigator.sendBeacon("/api/vitals", body);
+}`}
+</CodeBlock>
+
+## React-specific traps
+
+- **SPA soft navigations are not new page loads** — attribute vitals to the landing route, not the route the user ended on.
+- **Slow renders inflate INP** — a click that triggers a 400 ms re-render is a 400 ms+ INP sample.
+- **Lazy content without reserved space inflates CLS** — always set dimensions on images and skeletons.
+- **Hydration mismatches re-layout the page** — that shift counts against CLS.
+
+<CodeBlock lang="tsx" title="Keep INP low: mark heavy updates non-urgent">
+{`import { startTransition, useState } from "react";
+
+function Search({ items }: { items: string[] }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState(items);
+
+  function onChange(next: string) {
+    setQuery(next); // urgent: keep the input responsive
+    startTransition(() => {
+      // non-urgent: the expensive re-render of the results list
+      // becomes interruptible and no longer blocks the keystroke
+      setResults(items.filter((i) => i.includes(next)));
+    });
+  }
+
+  return (
+    <>
+      <input value={query} onChange={(e) => onChange(e.target.value)} />
+      <ul>
+        {results.map((r) => (
+          <li key={r}>{r}</li>
+        ))}
+      </ul>
+    </>
+  );
+}`}
+</CodeBlock>
+
+<Callout type="tip">
+INP spike you can't explain? Wrap the suspicious tree in React's `<Profiler
+onRender>` and correlate slow commits with the bad samples.
+</Callout>
+
+## How CLS is scored
+
+<Formula
+  tex={"\\text{CLS} = \\max_{\\text{session window}} \\sum_{\\text{shifts}} \\text{impact fraction} \\times \\text{distance fraction}"}
+  caption="Only the worst burst of shifts counts (shifts within a 5 s window, ≤1 s apart) — not the lifetime total. Each shift scores by how much of the viewport moved and how far."
+/>
+
+## In 30 seconds
+
+- LCP ≤ 2.5 s, INP ≤ 200 ms, CLS ≤ 0.1 — measured at the 75th percentile of real users.
+- One `useEffect` with `onLCP` / `onINP` / `onCLS`, reported via `sendBeacon`.
+- Values finalize per page load; soft navigations don't reset them.
+- Fight INP with `startTransition`; fight CLS with reserved space for lazy content.
