@@ -28,7 +28,7 @@ npm run build   # production build — all routes prerender statically
 
 ## How it works
 
-```
+```text
 src/
   app/
     page.tsx                    # home: hero + domain grid + latest topics
