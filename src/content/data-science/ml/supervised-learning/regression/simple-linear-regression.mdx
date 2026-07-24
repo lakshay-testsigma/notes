@@ -1,0 +1,43 @@
+---
+title: "Simple linear regression"
+summary: "One input, one output, one straight line: y = mx + b fitted by least squares."
+tags: ["ml", "regression", "statistics"]
+difficulty: "beginner"
+updated: "2026-07-24"
+icon: "📉"
+---
+
+<Analogy>
+Guessing a friend's house price from its size alone: bigger house, higher price. Simple linear
+regression finds the one straight line that makes those guesses least wrong on average.
+</Analogy>
+
+## The model
+
+<Formula
+  tex="\hat{y} = \beta_0 + \beta_1 x"
+  caption="One feature x, prediction ŷ. β₀ = intercept, β₁ = slope."
+/>
+
+## How the line is chosen
+
+Least squares: pick the line minimizing summed squared errors.
+
+<Formula
+  tex="\min_{\beta_0,\beta_1} \sum_{i=1}^{n} (y_i - \beta_0 - \beta_1 x_i)^2"
+  caption="Squared so big misses hurt much more than small ones."
+/>
+
+## In code
+
+```python
+from sklearn.linear_model import LinearRegression
+
+model = LinearRegression().fit(X, y)   # X: (n, 1), y: (n,)
+model.coef_[0], model.intercept_       # slope, intercept
+model.predict([[120]])                 # price for 120 m²
+```
+
+<Callout type="warning">
+One feature only. Several features (size + location + age) = multiple linear regression.
+</Callout>

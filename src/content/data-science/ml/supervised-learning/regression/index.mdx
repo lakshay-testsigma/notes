@@ -1,0 +1,26 @@
+---
+title: "Regression"
+summary: "Predict a number from inputs — the whole family at a glance."
+tags: ["ml", "regression"]
+difficulty: "beginner"
+updated: "2026-07-24"
+icon: "📈"
+---
+
+<TLDR>
+Regression = draw the best line (or curve) through data, then use it to predict new numbers.
+</TLDR>
+
+<Diagram
+  caption="The regression family — every branch predicts a number."
+  chart={`
+graph TD
+  R["Regression"] --> L["Linear"]
+  R --> P["Polynomial"]
+  R --> RG["Regularized"]
+  L --> SLR["Simple (1 feature)"]
+  L --> MLR["Multiple (n features)"]
+  RG --> RID["Ridge (L2)"]
+  RG --> LAS["Lasso (L1)"]
+`}
+/>

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SearchTrigger } from "@/components/command-palette";
 import { TopicList } from "@/components/topic-row";
-import { DOMAINS, getAllTopics } from "@/lib/content";
+import { getAllLeaves, getDomains } from "@/lib/content";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -13,7 +13,8 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 export default function Home() {
-  const topics = getAllTopics();
+  const topics = getAllLeaves();
+  const domains = getDomains();
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-14 sm:px-6 sm:py-20">
@@ -33,8 +34,8 @@ export default function Home() {
       <section className="mb-16">
         <SectionLabel>Domains</SectionLabel>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {DOMAINS.map((domain) => {
-            const count = topics.filter((t) => t.domain === domain.slug).length;
+          {domains.map((domain) => {
+            const count = domain.count;
             return (
               <Link
                 key={domain.slug}
@@ -54,7 +55,7 @@ export default function Home() {
                     <CardDescription className="flex flex-col gap-1.5">
                       {domain.blurb}
                       <span className="text-xs">
-                        {count} {count === 1 ? "topic" : "topics"}
+                        {count} {count === 1 ? "note" : "notes"}
                       </span>
                     </CardDescription>
                   </CardHeader>
@@ -68,7 +69,7 @@ export default function Home() {
       {topics.length > 0 && (
         <section>
           <SectionLabel>Latest topics</SectionLabel>
-          <TopicList topics={topics} />
+          <TopicList items={topics} />
         </section>
       )}
     </div>

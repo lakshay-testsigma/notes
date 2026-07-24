@@ -14,10 +14,16 @@ import {
 } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
-import { DOMAINS, type TopicMeta } from "@/lib/domains";
+import { humanize, type DomainInfo, type NoteItem } from "@/lib/domains";
 import { useUIStore } from "@/store/ui";
 
-export function CommandPalette({ topics }: { topics: TopicMeta[] }) {
+export function CommandPalette({
+  topics,
+  domains,
+}: {
+  topics: NoteItem[];
+  domains: DomainInfo[];
+}) {
   const router = useRouter();
   const { commandOpen, setCommandOpen, toggleCommand } = useUIStore();
 
@@ -46,7 +52,7 @@ export function CommandPalette({ topics }: { topics: TopicMeta[] }) {
               No topics match. Try a tag like “react” or “performance”.
             </span>
           </CommandEmpty>
-          {DOMAINS.map((domain) => {
+          {domains.map((domain) => {
             const domainTopics = topics.filter((t) => t.domain === domain.slug);
             if (domainTopics.length === 0) return null;
             return (
@@ -55,32 +61,40 @@ export function CommandPalette({ topics }: { topics: TopicMeta[] }) {
                 heading={domain.label}
                 className="mt-3 first:mt-1 [&_[cmdk-group-heading]]:px-1 [&_[cmdk-group-heading]]:pb-2 [&_[cmdk-group-heading]]:text-sm [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-foreground"
               >
-                {domainTopics.map((topic) => (
-                  <CommandItem
-                    key={`${topic.domain}/${topic.slug}`}
-                    value={`${topic.title} ${topic.summary} ${domain.label} ${topic.tags.join(" ")}`}
-                    style={{ "--domain": `var(${domain.accentVar})` } as React.CSSProperties}
-                    onSelect={() => {
-                      setCommandOpen(false);
-                      router.push(`/${topic.domain}/${topic.slug}`);
-                    }}
-                    className="mb-1.5 rounded-lg border bg-muted/40 px-3 py-3 data-selected:border-transparent data-selected:bg-(--domain) data-selected:text-background [&>svg:last-child]:hidden"
-                  >
-                    <span
-                      aria-hidden
-                      className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-background text-base"
+                {domainTopics.map((topic) => {
+                  // Ancestor folders between domain and note: "ML › Regression"
+                  const pathContext = topic.slugPath
+                    .slice(1, -1)
+                    .map(humanize)
+                    .join(" › ");
+                  return (
+                    <CommandItem
+                      key={topic.href}
+                      value={`${topic.title} ${topic.summary} ${domain.label} ${topic.slugPath.join(" ")} ${topic.tags.join(" ")}`}
+                      style={{ "--domain": `var(${domain.accentVar})` } as React.CSSProperties}
+                      onSelect={() => {
+                        setCommandOpen(false);
+                        router.push(topic.href);
+                      }}
+                      className="mb-1.5 rounded-lg border bg-muted/40 px-3 py-3 data-selected:border-transparent data-selected:bg-(--domain) data-selected:text-background [&>svg:last-child]:hidden"
                     >
-                      {topic.icon}
-                    </span>
-                    <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate font-medium">{topic.title}</span>
-                      <span className="truncate text-xs text-muted-foreground group-data-selected/command-item:text-background/80">
-                        {topic.summary}
+                      <span
+                        aria-hidden
+                        className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-background text-base"
+                      >
+                        {topic.icon}
                       </span>
-                    </span>
-                    <ChevronRight className="ml-auto size-4 shrink-0 opacity-40 group-data-selected/command-item:opacity-90" />
-                  </CommandItem>
-                ))}
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className="truncate font-medium">{topic.title}</span>
+                        <span className="truncate text-xs text-muted-foreground group-data-selected/command-item:text-background/80">
+                          {pathContext && <span>{pathContext} › </span>}
+                          {topic.summary}
+                        </span>
+                      </span>
+                      <ChevronRight className="ml-auto size-4 shrink-0 opacity-40 group-data-selected/command-item:opacity-90" />
+                    </CommandItem>
+                  );
+                })}
               </CommandGroup>
             );
           })}

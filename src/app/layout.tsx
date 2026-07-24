@@ -6,8 +6,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CommandPalette, SearchTrigger } from "@/components/command-palette";
-import { DOMAINS } from "@/lib/domains";
-import { getAllTopics } from "@/lib/content";
+import { getAllLeaves, getDomains } from "@/lib/content";
 
 const geistSans = Geist({
   variable: "--font-sans",
@@ -42,7 +41,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const topics = getAllTopics();
+  const topics = getAllLeaves();
+  const domains = getDomains();
 
   return (
     <html
@@ -91,7 +91,7 @@ export default function RootLayout({
                 visual-first learning notebook
               </p>
               <nav aria-label="Domains" className="flex flex-wrap gap-x-4 gap-y-1 sm:ml-auto">
-                {DOMAINS.map((d) => (
+                {domains.map((d) => (
                   <Link
                     key={d.slug}
                     href={`/${d.slug}`}
@@ -103,7 +103,7 @@ export default function RootLayout({
               </nav>
             </div>
           </footer>
-          <CommandPalette topics={topics} />
+          <CommandPalette topics={topics} domains={domains} />
         </ThemeProvider>
       </body>
     </html>
