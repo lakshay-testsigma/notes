@@ -1,0 +1,239 @@
+---
+title: "Collaboration workflows"
+domain: "git"
+summary: "Three ways a team shares one repo — everyone on master, feature branches + pull requests, and fork & clone."
+tags: ["git", "github", "collaboration", "pull-requests", "workflow"]
+difficulty: "intermediate"
+updated: "2026-07-27"
+icon: "👥"
+order: 13
+---
+
+<Analogy>
+One shared notebook everyone scribbles in, versus everyone drafting on their own
+page and asking before it goes in the book.
+</Analogy>
+
+<TLDR>
+- **Centralized** — everyone commits to a single branch. Fine for tiny teams, painful past that.
+- **Feature branches** — master stays the official history; all new work happens on its own branch.
+- **Pull requests** — a GitHub/Bitbucket feature (not Git) to review, discuss, approve or reject a branch.
+- **Fork & clone** — every contributor gets their own GitHub copy; push to `origin`, PR to `upstream`.
+- Forking and PRs are how huge open-source projects take work from thousands of strangers.
+</TLDR>
+
+## Centralized workflow
+
+<Steps
+  caption="One branch, three people — the second one to push pays."
+  items={[
+    { icon: "👥", label: "All clone", note: "Pamela, David and Forrest each clone the repo." },
+    { icon: "✍️", label: "Forrest commits", note: "New feature — adding and committing all day long, on master." },
+    { icon: "⬆️", label: "Forrest pushes", note: "His work goes up to GitHub first." },
+    { icon: "✍️", label: "Pamela commits", note: "She has been hard at work on her own feature. Also on master." },
+    { icon: "🚫", label: "Push rejected", note: "Her master is behind origin/master." },
+    { icon: "⬇️", label: "Pull + merge", note: "Forrest's work must be merged in. Hopefully smoothly!" },
+    { icon: "⬆️", label: "Now push", note: "Merged with GitHub, her master finally goes up." }
+  ]}
+/>
+
+<CodeBlock lang="text" title="What Pamela sees">{`Failed to push. Updates were rejected because the tip of your
+current branch is behind its remote counterpart. Merge the remote
+changes (e.g. 'git pull') before pushing again.`}</CodeBlock>
+
+### Sharing half-finished work
+
+David has doubts about his feature and wants the team's eyes on it.
+
+<Steps
+  caption="On a single branch, the only way to share code is to put it on master."
+  items={[
+    { icon: "🤔", label: "Iffy commits", note: "He wants to share them to start a discussion." },
+    { icon: "⬇️", label: "Pull first", note: "He must pull from GitHub and merge into master before sharing." },
+    { icon: "⬆️", label: "Push", note: "Teammates pull to get his new commits — doubts and all." }
+  ]}
+/>
+
+### Why it breaks
+
+<Steps
+  linked={false}
+  caption="Three problems that grow with team size."
+  items={[
+    { icon: "🥊", label: "Conflict tax", note: "Lots of time resolving conflicts and merging, worse as the team scales." },
+    { icon: "🧪", label: "No experiments", note: "Nothing can be tried without disturbing the main codebase." },
+    { icon: "💥", label: "Broken master", note: "Collaborating on a feature means pushing incomplete code everyone else pulls." }
+  ]}
+/>
+
+## Enter feature branches
+
+<Callout type="warning">
+DON'T WORK ON MASTER, SILLY GOOSE! All new development goes on separate branches.
+</Callout>
+
+<Steps
+  linked={false}
+  caption="What you buy by never committing to master."
+  items={[
+    { icon: "📜", label: "Official history", note: "Master/main is the record of the project, not a scratchpad." },
+    { icon: "🤝", label: "Shared features", note: "Teammates swap code on one feature branch without polluting master." },
+    { icon: "✅", label: "Unbroken master", note: "Master won't contain broken code — unless someone messes up." }
+  ]}
+/>
+
+<GitGraph
+  caption="Same three people, same week — but master is only touched at the very end."
+  commits={[
+    { id: "c1", label: "Initialize Project", lane: 0, note: "Forrest, Pamela and David all clone the repo." },
+    { id: "c2", label: "Add Dark Theme", lane: 1, parents: ["c1"], note: "David starts a feature on add-dark-theme and pushes the BRANCH, not master." },
+    { id: "c3", label: "Animate Scroll", lane: 2, parents: ["c1"], note: "Pamela is on her own branch, animated-scroll. Nobody is on master." },
+    { id: "c4", label: "Improve Dark Theme", lane: 1, parents: ["c2"], note: "She pulls his branch down, commits improvements on add-dark-theme and pushes them up." },
+    { id: "c5", label: "Finish Dark Theme", lane: 1, parents: ["c4"], note: "Back after an hour on reddit, David fetches, sees her work, pulls it down and carries on." },
+    { id: "c6", label: "Merge Dark Theme", lane: 0, parents: ["c1", "c5"], note: "Happy with it → merge into master with --no-ff and push. The others pull it down." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="The feature-branch loop">{`git switch -c add-dark-theme     # branch off master
+# ...add + commit...
+git push origin add-dark-theme   # share the BRANCH, not master
+git switch master
+# master never moved, so a plain 'git merge' would just fast-forward —
+# --no-ff forces the two-parent merge commit drawn above
+git merge --no-ff add-dark-theme # only now does master move
+git push origin master`}</CodeBlock>
+
+<Callout type="info">
+At a real company you don't just decide you're "happy with" a feature — there are
+approval and merging mechanisms. That's what pull requests are for.
+</Callout>
+
+### Branch naming
+
+Teams have their own conventions, usually slash-separated.
+
+| Style | Example |
+| --- | --- |
+| Bug | `bug/fix-scroll` |
+| Feature | `feature/login-form` |
+| Nested | `feat/button/enable-pointer-events` |
+
+## Getting a branch into master
+
+<Steps
+  linked={false}
+  caption="Three options. Only one of them scales."
+  items={[
+    { icon: "🤠", label: "Merge at will", note: "No discussion. JUST DO IT WHENEVER YOU WANT." },
+    { icon: "📧", label: "Email / chat", note: "Message the team to discuss whether the changes should go in." },
+    { icon: "🙋", label: "Pull request", note: "Ask formally, in a tool built for it." }
+  ]}
+/>
+
+## Pull requests
+
+> "I have this new stuff I want to merge into master... what do you all think about it?"
+
+| Question | Answer |
+| --- | --- |
+| **What** | A request that one branch be merged into another |
+| **Where** | Built into GitHub, Bitbucket & friends — **not** native to Git |
+| **Why** | Alert teammates to work needing review; approve or reject it; discuss and give feedback |
+
+<Steps
+  caption="Push, open, discuss, merge — or close."
+  items={[
+    { icon: "💻", label: "Work locally", note: "Do the work on a feature branch." },
+    { icon: "⬆️", label: "Push branch", note: "Push the feature branch up to GitHub." },
+    { icon: "🔘", label: "PR button", note: "GitHub spots the freshly pushed branch and offers it — I click it." },
+    { icon: "📝", label: "Feedback", note: "My boss asks for a couple of changes before she'll merge." },
+    { icon: "💬", label: "Reply", note: "I can respond — we discuss and give feedback on the commits." },
+    { icon: "🔧", label: "Fix", note: "I push the requested changes to the same branch." },
+    { icon: "🔀", label: "Merge", note: "Whoever is in charge merges — depends on team structure; the PR text becomes the merge commit message." },
+    { icon: "🗑️", label: "…or close", note: "She can also just close the PR instead. :(" }
+  ]}
+/>
+
+### Squash & merge
+
+<Diagram caption="Squash & merge: the whole branch lands as one commit on master." chart={`
+flowchart LR
+  A["3 commits"] --> B["squash"] --> C["1 commit"]
+`} />
+
+### When a PR conflicts
+
+<Callout type="warning">
+Just like any other merge, a PR can conflict. Don't panic — fix it on the command
+line as usual, or in GitHub's interactive editor.
+</Callout>
+
+<Steps
+  caption="Two groups of moves: clean the branch, then move master."
+  items={[
+    { icon: "⬇️", label: "Fetch", note: "Get the latest origin/master without touching your work." },
+    { icon: "🌿", label: "Merge master in", note: "On the feature branch, so the conflict is fixed there." },
+    { icon: "🔧", label: "Fix conflicts", note: "Edit the files, strip the markers, commit." },
+    { icon: "🔀", label: "Merge + push", note: "Back on master the merge is clean — push it up." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="Resolving a PR conflict locally">{`git fetch origin
+git switch my-new-feature   # go to the branch in question
+git merge origin/master     # the freshly fetched master, not the stale local one
+# fix conflicts!
+
+git switch master
+git merge origin/master     # fast-forward local master first
+git merge my-new-feature    # now conflict-free
+git push origin master`}</CodeBlock>
+
+<Callout type="tip">
+Forgot the steps? GitHub prints the exact command-line instructions on the PR page.
+</Callout>
+
+## Fork & clone
+
+Open source scale: thousands of contributors, a couple of maintainers.
+
+<Diagram caption="Forking is a GitHub feature, not a Git one — “make me my own copy of this repo, please”." chart={`
+flowchart TD
+  O["Official repo"] --> A["My fork"]
+  O --> B["Taylor's fork"]
+  O --> C["Lupe's fork"]
+`} />
+
+<Steps
+  caption="Two remotes: origin is mine, upstream is theirs."
+  items={[
+    { icon: "🍴", label: "Fork", note: "Click Fork — GitHub gives me my own copy of someone else's repo." },
+    { icon: "📥", label: "Clone fork", note: "Clone it locally. Git auto-adds a remote called origin → my fork." },
+    { icon: "🔗", label: "Add upstream", note: "Points at the ORIGINAL repo. Any name works — usually upstream or original." },
+    { icon: "✍️", label: "Work", note: "Break things, add features — normally on a feature branch." },
+    { icon: "⬆️", label: "Push to origin", note: "I can't push to upstream — no permission. My fork I own." },
+    { icon: "🙋", label: "PR to upstream", note: "Open a pull request from my fork to the original project." },
+    { icon: "🎉", label: "Merged", note: "Maintainers ask for changes, or accept and merge. Woohoo!" },
+    { icon: "⬇️", label: "Pull upstream", note: "Next day I'm behind — pull from upstream to catch up on others' work." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="Wiring up the two remotes">{`git clone <url-of-MY-fork>          # origin is added automatically
+git remote add upstream <url-of-ORIGINAL-repo>
+
+git push origin my-new-feature      # share via my fork
+git pull upstream master            # catch up with the official repo`}</CodeBlock>
+
+<Diagram caption="The triangle: code goes up through my fork, comes back down from the original." chart={`
+flowchart LR
+  L["My machine"] -- push --> F["My fork<br/>origin"]
+  F -- "pull request" --> U["Official repo<br/>upstream"]
+  U -- pull --> L
+`} />
+
+## In 30 seconds
+
+| Workflow | Branches | Repos | Best for |
+| --- | --- | --- | --- |
+| **Centralized** | one, shared | 1 | Tiny teams, toy projects |
+| **Feature branch + PR** | one per feature | 1 | Most company teams |
+| **Fork & clone** | one per feature | 1 fork each + official | Open source, untrusted contributors |
