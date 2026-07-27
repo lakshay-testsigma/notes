@@ -37,7 +37,16 @@ function parseMeta(file: string, fallbackTitle: string): NoteMeta {
     // unquoted YAML dates parse as Date objects — normalize to string
     updated: String(data.updated ?? "").slice(0, 10),
     icon: String(data.icon ?? "📄"),
+    order: typeof data.order === "number" ? data.order : undefined,
   };
+}
+
+// Curriculum order first (1, 2, 3 …), then unordered notes by recency.
+function byOrderThenDate(a: NoteNode, b: NoteNode): number {
+  const ao = a.meta.order ?? Infinity;
+  const bo = b.meta.order ?? Infinity;
+  if (ao !== bo) return ao - bo;
+  return b.meta.updated.localeCompare(a.meta.updated);
 }
 
 function walk(dir: string, slugPath: string[]): NoteNode[] {
@@ -98,7 +107,7 @@ function walk(dir: string, slugPath: string[]): NoteNode[] {
   });
 
   branches.sort((a, b) => a.meta.title.localeCompare(b.meta.title));
-  leaves.sort((a, b) => b.meta.updated.localeCompare(a.meta.updated));
+  leaves.sort(byOrderThenDate);
   return [...branches, ...leaves];
 }
 

@@ -13,7 +13,13 @@ export function TopicRow({ item }: { item: NoteItem }) {
       className="group flex items-stretch gap-4 rounded-md px-3 py-4 transition-colors hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--domain)"
     >
       <span aria-hidden className="flex w-9 shrink-0 justify-center">
-        <span className="w-0.5 rounded-full bg-(--domain)/70" />
+        {item.order === undefined ? (
+          <span className="w-0.5 rounded-full bg-(--domain)/70" />
+        ) : (
+          <span className="mt-0.5 font-mono text-xs tabular-nums text-(--domain)">
+            {String(item.order).padStart(2, "0")}
+          </span>
+        )}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block font-medium leading-snug group-hover:underline group-hover:underline-offset-4">
