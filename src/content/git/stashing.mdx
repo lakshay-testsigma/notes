@@ -1,0 +1,139 @@
+---
+title: "Stashing"
+domain: "git"
+summary: "Park uncommitted work on a shelf, switch branches freely, and pop it back — no junk commits."
+tags: ["git", "stash", "branching", "workflow"]
+difficulty: "intermediate"
+updated: "2026-07-27"
+icon: "📥"
+order: 8
+---
+
+<Analogy>
+The stash is a coat check for unfinished work — hand it over, walk around unencumbered, collect it later.
+</Analogy>
+
+<Steps
+  caption="One commit exists (cat.py). Branching and editing add none — so dog.py belongs to no branch."
+  items={[
+    { icon: "🌿", label: "On master", note: "cat.py committed. HEAD → master." },
+    { icon: "🌱", label: "New branch", note: "Create puppy and switch — HEAD → puppy, still no new commit." },
+    { icon: "✏️", label: "Edit dog.py", note: "I do some new work, but don't make any commits." },
+    { icon: "❓", label: "Switch back?", note: "What happens to dog.py when HEAD moves back to master?" }
+  ]}
+/>
+
+<Steps
+  linked={false}
+  caption="Two things can happen to dog.py when you switch."
+  items={[
+    { icon: "🎒", label: "Comes along", note: "Changes come with me to the destination branch." },
+    { icon: "🚫", label: "Blocked", note: "Git won't let me switch if it detects potential conflicts." }
+  ]}
+/>
+
+<TLDR>
+- `git stash` shelves all uncommitted work, staged **and** unstaged, and reverts your working copy.
+- The stash is **repo-wide, not per-branch** — stash on one branch, pop it on another.
+</TLDR>
+
+## Stash it
+
+<CodeBlock lang="bash" title="Shelve everything uncommitted">{`git stash
+git stash save   # deprecated spelling of git stash push (no pathspecs)`}</CodeBlock>
+
+<Diagram caption="Only uncommitted work moves. Commits in the repository never budge." chart={`
+flowchart LR
+  W["Working dir"] -- "git stash" --> S["📥 The Stash"]
+  G["Staging area"] -- "git stash" --> S
+  S -- "git stash pop" --> W
+  S -- "pop --index" --> G
+`} />
+
+## The interruption, replayed
+
+<Steps
+  caption="The everyday use case: a coworker interrupts a half-finished bugfix."
+  items={[
+    { icon: "🐞", label: "On bugfix", note: "2 modified, 2 staged." },
+    { icon: "🗣️", label: "Coworker", note: "“Review what I merged into master?”" },
+    { icon: "😬", label: "Stuck", note: "Not ready to commit — and don't want to drag these changes to master." },
+    { icon: "📥", label: "git stash", note: "Shelved." },
+    { icon: "🔀", label: "Go review", note: "Switch to master, read their changes, even create new commits." },
+    { icon: "📤", label: "git stash pop", note: "Back on bugfix." }
+  ]}
+/>
+
+| Stage | Working Directory | Staging Area | Repository |
+| --- | --- | --- | --- |
+| Before | modified `nav.css`, modified `nav.js` | modified `index.js`, created `footer.js` | `bb43f1f`, `0026739` |
+| After `git stash` | empty | empty | unchanged |
+| After `git stash pop` | `nav.css`, `nav.js`, `index.js` (unstaged) | `footer.js` (new file stays staged) | unchanged |
+
+## Pop vs apply
+
+| Command | Restores | Stash afterwards |
+| --- | --- | --- |
+| `git stash pop` | most recent stash | removed |
+| `git stash apply` | most recent stash | still there |
+
+<CodeBlock lang="bash" title="Restore">{`git stash pop
+git stash apply
+git stash pop --index`}</CodeBlock>
+
+<Callout type="warning">
+Pop and apply bring modified files back **unstaged** — only a brand-new file stays staged. Add `--index` to restore the exact staging state.
+</Callout>
+
+## Heads up — untracked files
+
+<Callout type="warning">
+Files you have **never** checked in to Git are not included in a stash. `-u` fixes that.
+</Callout>
+
+<CodeBlock lang="bash" title="Include untracked files">{`git stash -u`}</CodeBlock>
+
+## The stash stack
+
+<Steps
+  caption="Each git stash pushes onto the stack; the newest is always stash@{0}."
+  items={[
+    { icon: "📥", label: "stash", note: "git stash — one on the stack. Do some other stuff..." },
+    { icon: "📥", label: "again", note: "git stash — two on the stack. Do some other stuff..." },
+    { icon: "📥", label: "third", note: "git stash — three on the stack." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="View the stack">{`git stash list
+# stash@{0}: WIP on master: 049d078 Create index file
+# stash@{1}: WIP on master: c264051 Revert "Add file_size"
+# stash@{2}: WIP on master: 21d80a5 Add number to log`}</CodeBlock>
+
+## Pick, drop, clear
+
+<Steps
+  caption="Three deep — watch the stack change with each command."
+  items={[
+    { icon: "3️⃣", label: "Three stashes", note: "stash@{0}, stash@{1}, stash@{2} on the stack." },
+    { icon: "🎯", label: "apply stash@{2}", note: "Applies that one, not the newest — stack still three deep." },
+    { icon: "🗑️", label: "drop stash@{2}", note: "That stash is deleted — two left." },
+    { icon: "🧹", label: "clear", note: "Every stash gone — stack empty." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="Managing the stack">{`git stash apply stash@{2}
+git stash drop <stash-id>
+git stash clear`}</CodeBlock>
+
+## In 30 seconds
+
+<Diagram caption="stash → pop covers 99% of it — personal experience, YMMV." chart={`
+flowchart LR
+  A[uncommitted] --> B[git stash] --> C{need it back?}
+  C -- once --> D[pop]
+  C -- reuse --> E[apply]
+`} />
+
+<Callout type="tip">
+Reach for `apply` when the same work-in-progress needs to land on more than one branch.
+</Callout>
