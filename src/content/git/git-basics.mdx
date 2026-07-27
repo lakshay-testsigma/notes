@@ -1,0 +1,156 @@
+---
+title: "Git basics"
+domain: "git"
+summary: "Repo, staging area, commit — the init → add → commit loop, and the three commands that drive it."
+tags: ["git", "commit", "staging-area", "cli", "fundamentals"]
+difficulty: "beginner"
+updated: "2026-07-27"
+icon: "📦"
+order: 3
+---
+
+<Analogy>
+A commit is a save in a video game — a snapshot of the whole repo in time.
+</Analogy>
+
+<TLDR>
+- **Repo** = a folder Git watches, plus every nested subdirectory.
+- One repo per project. As many repos on your machine as you like, each with its own history.
+- **Commit** = the state of many files and folders, frozen together.
+- The loop: *work on stuff* → **`git add`** → **`git commit`**.
+- **`git status`** is your friend. Run it constantly.
+</TLDR>
+
+## A repo is a watched folder
+
+<Steps
+  linked={false}
+  caption="Any folder can become a repo — code or not. Separate histories, separate contents."
+  items={[
+    { icon: "🌐", label: "Portfolio Website", note: "One repo." },
+    { icon: "💡", label: "Startup Idea", note: "Its own repo, its own history." },
+    { icon: "🎬", label: "Movie Script", note: "Not code. Still a repo." },
+    { icon: "🎼", label: "Symphony #17", note: "Still a repo." },
+    { icon: "📱", label: "Reddit Clone", note: "One project = one repo." }
+  ]}
+/>
+
+<Diagram caption="Init at the top-level folder — Git then tracks it and everything nested inside." chart={`
+flowchart TD
+  A["my-project/ 📦"] --> B["index.html"]
+  A --> C["src/"]
+  A --> D["assets/"]
+  C --> E["app.js"]
+  D --> F["logos/"]
+`} />
+
+## Your first two commands
+
+<Steps
+  caption="Check before you init — status errors until a repo exists."
+  items={[
+    { icon: "🔍", label: "Check", note: "git status — before anything else." },
+    { icon: "📦", label: "Init", note: "git init creates a hidden .git folder — that folder is the repo. Once per project, top-level." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="status before there is a repo">{`❯ git status
+fatal: not a git repository (or any of the parent directories): .git`}</CodeBlock>
+
+<CodeBlock lang="bash" title="init, safely">{`git status   # verify you are NOT already inside a repo
+git init     # creates .git in this folder — the repo itself`}</CodeBlock>
+
+<Callout type="warning">
+**Never `git init` inside an existing repo.** Run `git status` first to verify you aren't already in one. Made one by mistake? Locate its `.git` directory and delete it — then try again in the right folder.
+</Callout>
+
+<CodeBlock lang="bash" title="undo a mistaken init">{`rm -rf .git   # ONLY to undo a repo you created by mistake`}</CodeBlock>
+
+## Git is now watching you
+
+<CodeBlock lang="bash" title="untracked">{`❯ touch app.js
+❯ git status
+On branch main
+
+No commits yet
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	app.js
+
+nothing added to commit but untracked files present (use "git add" to track)`}</CodeBlock>
+
+<Callout type="info">
+`On branch main` assumes `init.defaultBranch=main` — a fresh install still says `master`.
+</Callout>
+
+## A commit is a snapshot
+
+<GitGraph
+  caption="History grows one commit at a time."
+  commits={[
+    { id: "c1", label: "Initialize Project", lane: 0, note: "This is my repo!" },
+    { id: "c2", label: "Add Top Navbar", lane: 0, parents: ["c1"], note: "I add some content." },
+    { id: "c3", label: "Add First Row", lane: 0, parents: ["c2"], note: "Add a commit." }
+  ]}
+/>
+
+| What | Save | Commit |
+| --- | --- | --- |
+| Freezes | One file | Many files & folders together |
+| Example | `essay.docx` | `app.js` `main.html` `chatbot.js` `mobile.css` `logos/` |
+| Keeps history | No | Yes — every snapshot stays |
+
+## The basic Git workflow
+
+Committing is Git's most important feature.
+
+<Diagram caption="Two commands, three places: work (create · edit · delete) → add → commit — git status checks the first two, constantly." chart={`
+flowchart LR
+  A["Working Directory"] -->|"git add"| B["Staging Area"] -->|"git commit"| C["Repository"]
+  S["git status"] -.-> A
+  S -.-> B
+`} />
+
+<Steps
+  caption="One commit = one idea: four staged groups, four snapshots — staging empties into the repo each time."
+  items={[
+    { icon: "📝", label: "7 changes", note: "Working directory: 4 created, 2 modified, 1 deleted." },
+    { icon: "➕", label: "Stage branding", note: "git add logo.jpg navbar.js navbar.css navbar.html — 4 of 7 move to staging." },
+    { icon: "📸", label: "Commit 1", note: "Add branded navbar — staging empties into the repo." },
+    { icon: "➕", label: "Stage rest", note: "git add . — about.css, about.html, team.html move to staging." },
+    { icon: "📸", label: "Commit 2", note: "Add new team members to about page. Working directory clean." },
+    { icon: "📝", label: "More work", note: "created lisa.jpg, modified about.html & navbar.html." },
+    { icon: "➕", label: "Stage one file", note: "git add navbar.html — staged on its own." },
+    { icon: "📸", label: "Commit 3", note: "Fixed navbar typo." },
+    { icon: "➕", label: "Stage all", note: "git add . — lisa.jpg created, about.html modified." },
+    { icon: "📸", label: "Commit 4", note: "Add new hire Lisa to the about page. Working dir clean." }
+  ]}
+/>
+
+## git add
+
+Staging tells Git: *"please include this change in our next commit."*
+
+<CodeBlock lang="bash" title="stage changes">{`git add file1 file2   # specific files, separated by spaces
+git add .             # stage all changes at once
+git status            # verify what is staged and what is not`}</CodeBlock>
+
+## git commit
+
+`git commit` moves everything in the staging area into the repository, with a message summarizing that snapshot.
+
+<CodeBlock lang="bash" title="commit staged changes">{`git commit                            # text editor pops open — overwhelming when starting out
+git commit -m "Add branded navbar"    # inline message, no editor. Use this one`}</CodeBlock>
+
+<Callout type="tip">
+Writing *good* commit messages is a topic of its own — later in the course.
+</Callout>
+
+## In 30 seconds
+
+<Diagram caption="One file, three states — and the command that moves it to the next." chart={`
+flowchart LR
+  A["untracked or modified"] -->|"git add"| B["staged"] -->|"git commit -m"| C["committed"]
+  C -.->|"edit again"| A
+`} />
