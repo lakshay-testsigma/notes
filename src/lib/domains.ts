@@ -8,6 +8,8 @@ export interface NoteMeta {
   difficulty: "beginner" | "intermediate" | "advanced";
   updated: string;
   icon: string;
+  /** optional curriculum position — ordered notes sort before unordered ones */
+  order?: number;
 }
 
 // Flat, serializable note reference — safe to pass to client components
@@ -34,6 +36,7 @@ export const DOMAIN_REGISTRY: Record<string, Omit<DomainInfo, "slug">> = {
   "data-science": { label: "Data Science", icon: "🔬", blurb: "Stats, ML, experiments", accentVar: "--domain-data-science" },
   "data-analytics": { label: "Data Analytics", icon: "📊", blurb: "Metrics, dashboards, SQL", accentVar: "--domain-data-analytics" },
   "ai-engineering": { label: "AI Engineering", icon: "🤖", blurb: "LLMs, agents, evals", accentVar: "--domain-ai-engineering" },
+  git: { label: "Git", icon: "🌿", blurb: "Version control, branching, collaboration", accentVar: "--domain-git" },
 };
 
 const ACRONYMS = new Set(["ml", "dl", "cv", "nlp", "ai", "llm", "llms", "sql", "api", "css", "html", "js", "ts"]);
