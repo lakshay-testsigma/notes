@@ -1,0 +1,159 @@
+---
+title: "Branching"
+domain: "git"
+summary: "Branches are alternative timelines; HEAD is the bookmark telling you which one you're standing on."
+tags: ["git", "branching", "head", "switch", "workflow"]
+difficulty: "intermediate"
+updated: "2026-07-27"
+icon: "🌿"
+order: 5
+---
+
+<Analogy>
+A branch is an alternative timeline — the others don't feel a thing.
+</Analogy>
+
+<Steps
+  linked={false}
+  caption="Five contexts, one project."
+  items={[
+    { icon: "🎨", label: "Color schemes", note: "Two variations, unsure which is best." },
+    { icon: "🐛", label: "Bug hunt", note: "Toggle code on and off." },
+    { icon: "💬", label: "Chat widget", note: "Teammate's demo — may never ship." },
+    { icon: "🔍", label: "Autocomplete", note: "Coworker on the search bar." },
+    { icon: "🧪", label: "Radical redesign", note: "Layout overhaul, presented next month." }
+  ]}
+/>
+
+<GitGraph
+  caption="Three contexts, one folder — only one merges back."
+  commits={[
+    { id: "m1", label: "987fac…", lane: 0, note: "Shared starting line." },
+    { id: "m2", label: "236ff…", lane: 0, parents: ["m1"], note: "Still one timeline." },
+    { id: "cs", label: "92faa… color scheme", lane: 1, parents: ["m2"], note: "Splits off." },
+    { id: "bf", label: "bug fix", lane: 2, parents: ["m2"], note: "Its own lane." },
+    { id: "rd", label: "redesign", lane: 3, parents: ["m2"], note: "May never ship." },
+    { id: "m3", label: "566ff…", lane: 0, parents: ["m2"], note: "Master keeps shipping." },
+    { id: "mg", label: "merge!", lane: 0, parents: ["m3", "cs"], note: "Only this one returns." }
+  ]}
+/>
+
+<TLDR>
+- A **branch** = a separate context. Changes stay there **unless you merge**.
+- You are **always on a branch\*** — default `master`, no special powers. *(\*except detached HEAD, later.)*
+- **HEAD** = a pointer to where you are; it points at a branch reference.
+</TLDR>
+
+## A commit remembers its parent
+
+<Diagram caption="Every commit stores a hash, a message and its parent." chart={`
+flowchart RL
+  C["171615…<br/>add banner"] --> B["236ff…<br/>fix typo"] --> A["987fac…<br/>remove x"] --> N(["none"])
+`} />
+
+## The master branch
+
+<CodeBlock lang="bash" title="you've seen this">{`On branch master
+nothing to commit`}</CodeBlock>
+
+| Belief | Reality |
+| --- | --- |
+| "master is special" | Just a branch. No fancy powers. |
+| "master holds the master copy" | It doesn't have to. |
+| "master is the official source of truth" | Your team's convention, not a Git rule. |
+
+<Callout type="info">
+In 2020 **GitHub** renamed its default branch `master` → `main`. Git's own default
+is still `master`; the Git team is exploring a change.
+</Callout>
+
+## The everyday workflow
+
+<Diagram caption="Branch off master, build, merge back — everyone in parallel." chart={`
+flowchart LR
+  A[master] --> B[new branch] --> C[commits] --> D[merge back] --> A
+`} />
+
+<Steps
+  caption="Same repo, three branches — HEAD sits on exactly one."
+  items={[
+    { icon: "📍", label: "HEAD → master", note: "Fitz's and Ethel's branches sit idle." },
+    { icon: "🧑‍🔧", label: "HEAD → Fitz", note: "Commits land on Fitz's branch." },
+    { icon: "🧑‍🎨", label: "HEAD → Ethel", note: "Master and Fitz unmoved." }
+  ]}
+/>
+
+## HEAD
+
+<CodeBlock lang="bash" title="git log — WTF is that craziness?">{`commit bca5fc8b05deda4a13e7588c7ca352e47560c1dd (HEAD -> master)`}</CodeBlock>
+
+<Analogy>
+HEAD is the bookmark, not the story.
+</Analogy>
+
+<Diagram caption="Normally HEAD points at a branch, and the branch points at the commit." chart={`
+flowchart LR
+  H[HEAD] --> B[branch ref] --> C[latest commit]
+`} />
+
+## Replay: one project, HEAD moving
+
+<Steps
+  caption="Eight beats: where HEAD sits, where commits land."
+  items={[
+    { icon: "💾", label: "First commit", note: "987fac… on master. HEAD → master." },
+    { icon: "💾", label: "Another commit", note: "236ff… on master." },
+    { icon: "🌱", label: "New branch", note: "DarkMode starts at 236ff…" },
+    { icon: "🌙", label: "Commit on it", note: "92faa… on DarkMode. HEAD → DarkMode." },
+    { icon: "🌙", label: "And another", note: "232fa… on DarkMode. Master still 236ff…" },
+    { icon: "↩️", label: "Back to master", note: "HEAD → master. DarkMode commits still there." },
+    { icon: "🌘", label: "Return to DarkMode", note: "Work is where you left it." },
+    { icon: "🔀", label: "Merge?", note: "DarkMode → master = f9de1…, next chapter." }
+  ]}
+/>
+
+## The commands
+
+| Command | Does |
+| --- | --- |
+| `git branch` | List branches; `*` = the one you're on |
+| `git branch -v` | Same, plus last commit + message |
+| `git branch <name>` | Create at HEAD — **does not** switch |
+| `git switch <name>` | Move HEAD onto that branch |
+| `git switch -c <name>` | Create **and** switch (`-c` = create) |
+| `git checkout <name>` | The old way to switch; still works |
+
+<CodeBlock lang="bash" title="day-to-day">{`git switch -c refactor                        # new refactor branch, and you're on it
+git config --global init.defaultBranch main   # the default branch is configurable`}</CodeBlock>
+
+<CodeBlock lang="bash" title="git branch -v">{`* master      88df51f   add documentation
+  bugfix      7c2a586   fix hover bug
+  chatdemo    afadcf9   add chat widget`}</CodeBlock>
+
+<Callout type="info">
+`checkout` does a million additional things, so a simpler standalone `switch` was
+added. Older tutorials use `checkout` — both work.
+</Callout>
+
+## Create ≠ switch
+
+<Steps
+  caption="Creating a branch doesn't move you onto it."
+  items={[
+    { icon: "🌱", label: "git branch bugfix", note: "Exists. HEAD still on master." },
+    { icon: "🔀", label: "git switch bugfix", note: "HEAD → bugfix now." },
+    { icon: "⚡", label: "switch -c", note: "Skips step one entirely." }
+  ]}
+/>
+
+## Branches are cut from HEAD
+
+<GitGraph
+  caption="A new branch starts at HEAD: it inherits commits, it doesn't add one."
+  commits={[
+    { id: "c1", label: "987fac…", lane: 0, note: "master" },
+    { id: "c2", label: "236ff…", lane: 0, parents: ["c1"], note: "master" },
+    { id: "c3", label: "92faa…", lane: 1, parents: ["c2"], note: "bugfix, first commit." },
+    { id: "c4", label: "2456… ← HEAD", lane: 1, parents: ["c3"], note: "Branch here → the new branch inherits all four." }
+  ]}
+/>
