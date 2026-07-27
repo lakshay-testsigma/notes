@@ -1,0 +1,142 @@
+---
+title: "GitHub odds & ends"
+domain: "git"
+summary: "The GitHub layer around your repo — visibility, collaborators, READMEs, Markdown, Gists and Pages."
+tags: ["git", "github", "readme", "markdown", "github-pages", "collaboration"]
+difficulty: "beginner"
+updated: "2026-07-27"
+icon: "🎛️"
+order: 12
+---
+
+<Analogy>
+Git is the engine. These are the dashboard knobs around it — who can look in, who can drive, and what the sign on the door says.
+</Analogy>
+
+<TLDR>
+- **Public** repo = the whole internet can see it. **Private** = owner plus people granted access.
+- Invite **collaborators** in repo settings — they get push access to your repo.
+- A **README.md** in the project root is auto-rendered on the repo's home page — `.md` = **Markdown**, a light syntax for formatted text, easy to pick up.
+- **Gists** = instant snippet sharing, no repo setup.
+- **GitHub Pages** hosts *static* sites straight from a branch.
+</TLDR>
+
+## Public vs private repos
+
+Visibility is a per-repo switch, not an account setting.
+
+| | **Public** | **Private** |
+| --- | --- | --- |
+| Who can see | Everyone on the internet | Owner + people granted access |
+| Who can push | Owner + collaborators | Owner + collaborators |
+| On your public profile | Listed | Hidden |
+
+## Deleting a GitHub repo
+
+<Steps
+  caption="GitHub makes you type the repo path first — deletion is near-permanent."
+  items={[
+    { icon: "⚙️", label: "Settings", note: "Open the repo's Settings tab." },
+    { icon: "☠️", label: "Danger Zone", note: "Scroll to the bottom — Delete this repository." },
+    { icon: "⌨️", label: "Type the path", note: "Type owner/repo exactly to confirm." },
+    { icon: "💨", label: "Gone", note: "Repo, issues and pull requests removed on GitHub." }
+  ]}
+/>
+
+<Callout type="warning">
+**Stars, watchers and release attachments never come back.** Forks of a public repo survive on their own — GitHub re-parents the fork network. The repo — issues and PRs included — can sometimes be restored within 90 days (Settings → Repositories), and your **local clone** still has the full history.
+</Callout>
+
+## Adding collaborators
+
+<Steps
+  caption="A collaborator can push straight to your repo — no fork required."
+  items={[
+    { icon: "⚙️", label: "Settings", note: "Repo → Settings → Collaborators." },
+    { icon: "✉️", label: "Invite", note: "Add them by GitHub username or email." },
+    { icon: "✅", label: "They accept", note: "The invite lands in their inbox / GitHub notifications." },
+    { icon: "⬆️", label: "Push access", note: "They can now clone and push to your repo directly." }
+  ]}
+/>
+
+<Callout type="tip">
+"Can I collaborate with myself?" — yes. GitHub allows only **one free account per person**, so make a second account (paid) or a **machine account** and add it as the collaborator — or make a free **organization**, host the repo there, and add your other account as a member. Classic trick for testing a collaboration flow solo.
+</Callout>
+
+## READMEs
+
+<Steps
+  linked={false}
+  caption="Drop it in the project root — GitHub renders it on the repo home page, answering four questions."
+  items={[
+    { icon: "🛠️", label: "What", note: "What the project does." },
+    { icon: "▶️", label: "How", note: "How to run the project." },
+    { icon: "✨", label: "Why", note: "Why it's noteworthy." },
+    { icon: "👤", label: "Who", note: "Who maintains the project." }
+  ]}
+/>
+
+## Markdown
+
+<Steps
+  linked={false}
+  caption="Markdown — easy syntax for formatted text."
+  items={[
+    { icon: "🔠", label: "Headings", note: "Six levels, all with the # character." },
+    { icon: "✒️", label: "Text styles", note: "Bold, italics, etc." },
+    { icon: "💻", label: "Code blocks", note: "Fenced, syntax-highlighted snippets." },
+    { icon: "🔢", label: "Lists", note: "Ordered and unordered." },
+    { icon: "🔗", label: "Links", note: "Inline links to anywhere." },
+    { icon: "🖼️", label: "Images", note: "Embedded straight in the page." },
+    { icon: "➕", label: "And more", note: "Tables, quotes, checkboxes…" }
+  ]}
+/>
+
+<CodeBlock lang="markdown" title="Six heading levels">{`# The Largest Heading
+## The Second Largest Heading
+### The Third Largest Heading
+...
+###### The Smallest Heading`}</CodeBlock>
+
+## GitHub Gists
+
+| | **Gist** | **Repo** |
+| --- | --- | --- |
+| Built for | Snippets, useful fragments | Whole projects |
+| Creating one | Very easy | More setup |
+| Features | Far fewer | The full toolbox |
+
+## GitHub Pages
+
+<Steps
+  caption="Push code, point GitHub at a branch, get a live website."
+  items={[
+    { icon: "📝", label: "Write", note: "HTML / CSS / JS in your repo." },
+    { icon: "⬆️", label: "Push", note: "Push it up to GitHub." },
+    { icon: "🌿", label: "Pick branch", note: "Point GitHub at the branch holding the site." },
+    { icon: "🌐", label: "Live", note: "GitHub hosts and publishes the page for you." }
+  ]}
+/>
+
+<Callout type="warning">
+Static hosting only — **no server-side code**. No Python, Ruby or Node. Just HTML/CSS/JS.
+A published Pages site is a **public URL** — never put secrets in the repo you publish.
+</Callout>
+
+| | **User site** | **Project sites** |
+| --- | --- | --- |
+| How many | One per GitHub account | Unlimited — one per repo |
+| Good for | Portfolio, personal site | A site per project |
+| Default URL | `username.github.io` | `username.github.io/repo-name` |
+| Changeable | Rename your account, or a custom domain | Rename the repo, or a custom domain |
+
+## In 30 seconds
+
+<Diagram caption="One repo, four knobs GitHub hangs off it." chart={`
+flowchart LR
+  R["your repo"] --> V["public / private"]
+  R --> C["collaborators"]
+  R --> M["README.md"]
+  R --> P["Pages site"]
+  G["gist"] -.- R
+`} />
