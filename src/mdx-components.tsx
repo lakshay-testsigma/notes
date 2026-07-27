@@ -6,6 +6,8 @@ import { ChartJS } from "@/components/mdx/ChartJS";
 import { CodeBlock } from "@/components/mdx/CodeBlock";
 import { Diagram } from "@/components/mdx/Diagram";
 import { Formula } from "@/components/mdx/Formula";
+import { GitGraph } from "@/components/mdx/GitGraph";
+import { Steps } from "@/components/mdx/Steps";
 import { TLDR } from "@/components/mdx/TLDR";
 
 const components: MDXComponents = {
@@ -62,6 +64,8 @@ const components: MDXComponents = {
   CodeBlock,
   Diagram,
   Formula,
+  GitGraph,
+  Steps,
   TLDR,
 };
 

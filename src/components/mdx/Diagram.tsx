@@ -8,6 +8,7 @@ export function Diagram({ chart, caption }: { chart: string; caption?: string })
   const id = useId().replace(/:/g, "");
   const { resolvedTheme } = useTheme();
   const [failed, setFailed] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -21,7 +22,10 @@ export function Diagram({ chart, caption }: { chart: string; caption?: string })
           themeVariables: { fontFamily: "var(--font-sans)", fontSize: "14px" },
         });
         const { svg } = await mermaid.render(`m-${id}`, chart);
-        if (alive && ref.current) ref.current.innerHTML = svg;
+        if (alive && ref.current) {
+          ref.current.innerHTML = svg;
+          setReady(true);
+        }
       } catch {
         if (alive) setFailed(true);
       }
@@ -41,7 +45,11 @@ export function Diagram({ chart, caption }: { chart: string; caption?: string })
 
   return (
     <figure className="my-6 flex flex-col items-center gap-2">
-      <div ref={ref} className="min-h-40 w-full overflow-x-auto [&_svg]:mx-auto" />
+      {/* Reserve space while mermaid loads, then let the SVG set its own height. */}
+      <div
+        ref={ref}
+        className={`w-full overflow-x-auto [&_svg]:mx-auto ${ready ? "" : "min-h-40"}`}
+      />
       {caption && <figcaption className="text-sm text-muted-foreground">{caption}</figcaption>}
     </figure>
   );
