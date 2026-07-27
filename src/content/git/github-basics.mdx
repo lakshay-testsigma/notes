@@ -1,0 +1,184 @@
+---
+title: "GitHub basics"
+domain: "git"
+summary: "Git in the cloud — clone a repo, wire up a remote, and push branches to origin."
+tags: ["git", "github", "remote", "clone", "push", "collaboration"]
+difficulty: "beginner"
+updated: "2026-07-27"
+icon: "☁️"
+order: 10
+---
+
+<Analogy>
+Git is the save file. GitHub is the cloud save.
+</Analogy>
+
+<Steps
+  caption="Why the cloud copy matters."
+  items={[
+    { icon: "💻", label: "Local repo", note: "Commits on one machine." },
+    { icon: "⬆️", label: "Push", note: "History goes up." },
+    { icon: "☁️", label: "Cloud copy", note: "Reachable anywhere, shareable with anyone." },
+    { icon: "🆕", label: "New laptop", note: "“New laptop! Now I need my code.”" },
+    { icon: "⬇️", label: "Clone down", note: "Back on a machine." },
+    { icon: "👥", label: "Teammates", note: "Everyone pushes and pulls here." }
+  ]}
+/>
+
+<TLDR>
+- `git clone <url>` works on any **public** repo — no account, no permission.
+- Nothing goes up until `git push <remote> <branch>`.
+</TLDR>
+
+## Git vs GitHub
+
+| | **Git** | **GitHub** |
+| --- | --- | --- |
+| What | Version control software | Cloud host for Git repos |
+| Runs | Locally, on your machine | Online service |
+| Account | Never needed | Required |
+| Internet | Never needed | Required |
+| Gives you | Commits, branches, merges | Collaboration features Git lacks |
+| Alone? | Usable for life, GitHub untouched | Just where Git work gets shared |
+
+## Not the only option, but the biggest
+
+| Fact | Number |
+| --- | --- |
+| Rivals | GitLab, BitBucket, Gerrit — same hosting + collaboration |
+| Founded | 2008 |
+| Rank | World's largest host of source code |
+| Early 2020 | 40 million+ users, 190 million+ repos |
+| Free tier | Unlimited public **and** private repos, unlimited collaborators |
+| Paid tiers | Team, Enterprise |
+
+## Why bother
+
+| Reason | Why |
+| --- | --- |
+| Collaboration | One other person makes it worth it |
+| Open source | React to Swift — it all lives here |
+| Exposure | Profile = resumé employers read, plus clout |
+| Stay current | Upcoming changes, and the debate behind them |
+| Solo? | Still worth knowing how to use |
+
+## Cloning
+
+<Steps
+  caption="Copy an existing repo down — you just need a URL."
+  items={[
+    { icon: "🔗", label: "Copy URL", note: "Machine has no repo; grab the URL." },
+    { icon: "⬇️", label: "git clone", note: "Files + full history come down." },
+    { icon: "💻", label: "Local copy", note: "A real repo, initialized locally." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="clone a repo">{`git clone https://github.com/user/repo.git
+
+# make sure you are NOT inside an existing repo when you clone!`}</CodeBlock>
+
+| Question | Answer |
+| --- | --- |
+| Own the repo? | No — any **public** repo; owner/collaborator not required |
+| Push back? | Another story — that needs **permission** |
+| GitHub-only? | No — plain Git; clones repos hosted anywhere |
+
+## SSH keys
+
+<Steps
+  caption="Configure once, never type a password again."
+  items={[
+    { icon: "⌨️", label: "Password prompt", note: "Pushing needs auth — HTTPS prompts every time." },
+    { icon: "🔑", label: "Generate key", note: "Add an SSH key to your account." },
+    { icon: "✅", label: "Connected", note: "No username/password again." }
+  ]}
+/>
+
+<Callout type="info">
+Over HTTPS, GitHub wants a **personal access token**, not your account password. SSH skips the prompt entirely.
+</Callout>
+
+## Getting code onto GitHub
+
+<Steps
+  caption="Option 1 — local repo already exists."
+  items={[
+    { icon: "💻", label: "Local repo", note: "Laptop only." },
+    { icon: "📦", label: "Empty GH repo", note: "Create it on GitHub." },
+    { icon: "🔗", label: "Add remote", note: "Copy URL, tell local repo." },
+    { icon: "⬆️", label: "Push", note: "Commits up." }
+  ]}
+/>
+
+<Steps
+  caption="Option 2 — nothing exists yet, so start on GitHub."
+  items={[
+    { icon: "📦", label: "New GH repo", note: "Brand new, empty." },
+    { icon: "⬇️", label: "Clone it", note: "Auto-connected — no remote to add." },
+    { icon: "✍️", label: "Work locally", note: "Commit some work." },
+    { icon: "⬆️", label: "Push", note: "New work up." }
+  ]}
+/>
+
+## Remotes
+
+<CodeBlock lang="bash" title="remote commands">{`# remote = destination: a label + the URL where a hosted repo lives
+
+git remote                 # list names
+git remote -v              # verbose: names + URLs (empty until you add one)
+
+git remote add <name> <url>
+
+git remote add origin https://github.com/blah/repo.git
+# "whenever I say origin, I mean this GitHub URL"
+# origin: convention, not keyword — clone's default, renameable, rarely renamed
+git remote -v              # check your work — it shows up now
+
+git remote add mygithuburl https://github.com/meh/repo.git
+# any label works — just not a common choice
+
+git remote rename <old> <new>   # rarely needed
+git remote remove <name>        # rarely needed`}</CodeBlock>
+
+<Callout type="warning">
+Adding a remote talks to **nothing** — it only records a URL locally.
+</Callout>
+
+## Pushing
+
+<GitGraph
+  caption="Local history: master plus newfeature."
+  commits={[
+    { id: "c1", label: "Initial commit", lane: 0, note: "master starts." },
+    { id: "c2", label: "Second commit", lane: 0, parents: ["c1"], note: "Still master." },
+    { id: "f1", label: "Feature work", lane: 1, parents: ["c2"], note: "newfeature branches off." },
+    { id: "f2", label: "More feature work", lane: 1, parents: ["f1"], note: "Branch tip." }
+  ]}
+/>
+
+<Steps
+  caption="git push <remote> <branch> — name both; per-branch, never automatic."
+  items={[
+    { icon: "🕳️", label: "GitHub empty", note: "Remote has no branches." },
+    { icon: "⬆️", label: "Push master", note: "git push origin master → master up." },
+    { icon: "🌿", label: "Push newfeature", note: "git push origin newfeature → both up." },
+    { icon: "✍️", label: "Commit locally", note: "New master commits. GitHub has no idea!" },
+    { icon: "🔁", label: "Push again", note: "git push origin master → remote catches up." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="the everyday loop">{`# change something locally
+git add .
+git commit -m "Add the thing"
+git push origin master
+# ...repeat`}</CodeBlock>
+
+## In 30 seconds
+
+| Command | Moves your code |
+| --- | --- |
+| `git add` | Workspace → Staging (index) |
+| `git commit` | Staging → Local repo |
+| `git push` | Local repo → Remote repo |
+| `git fetch` | Remote repo → Local repo |
+| `git pull` | Remote repo → Workspace |
