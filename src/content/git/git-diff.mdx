@@ -1,0 +1,218 @@
+---
+title: "Comparing with git diff"
+domain: "git"
+summary: "Spot-the-difference for your repo — which snapshots git diff compares, and how to read every line of its output."
+tags: ["git", "diff", "staging", "branches", "commits"]
+difficulty: "intermediate"
+updated: "2026-07-27"
+icon: "🔍"
+order: 7
+---
+
+<Analogy>
+Spot-the-difference: two snapshots side by side, and Git circles only what moved.
+</Analogy>
+
+<TLDR>
+- `git diff` compares **commits, branches, files, the working directory** — and more.
+- Bare `git diff` = **staging area ↔ working directory**: changes NOT staged for the next commit.
+- `git diff HEAD` = everything since the last commit. `--staged` / `--cached` = what's about to be committed.
+- Output order: which files (**A** and **B**) → metadata you ignore → `@@` chunk header → `-` lines from A, `+` lines from B.
+- `..` compares two named things: `branch1..branch2`, `commit1..commit2`.
+</TLDR>
+
+<Callout type="info">
+Use it alongside `git status` and `git log` — together they give the full picture of a repo and how it changed.
+</Callout>
+
+## Which two snapshots?
+
+Three places your code can live. Each flag picks a different pair.
+
+<Steps
+  linked={false}
+  caption="Three forms, three pairs."
+  items={[
+    { icon: "✏️", label: "git diff", note: "Staging area ↔ working directory." },
+    { icon: "🧭", label: "git diff HEAD", note: "Last commit ↔ working tree." },
+    { icon: "📦", label: "--staged", note: "Last commit ↔ staging area." }
+  ]}
+/>
+
+<Diagram caption="Three snapshots, three comparisons. The flag chooses the pair." chart={`
+flowchart LR
+  C["Last commit<br/>HEAD"] -->|"--staged"| S["Staging area"]
+  S -->|"git diff"| W["Working directory"]
+  C -.->|"git diff HEAD"| W
+`} />
+
+<CodeBlock lang="bash" title="the three core forms">{`git diff              # staging area vs working directory — unstaged changes only
+git diff HEAD         # last commit vs working tree — everything since the commit
+git diff --staged     # last commit vs staging area
+git diff --cached     # identical to --staged, older spelling`}</CodeBlock>
+
+<Callout type="tip">
+`--staged` answers: *"show me what will be included in my commit if I run `git commit` right now."*
+</Callout>
+
+## A worked example
+
+One line removed, two added.
+
+| `rainbow.txt` — last commit | `rainbow.txt` — new changes |
+| --- | --- |
+| red<br/>orange<br/>yellow<br/>green<br/>blue<br/>**purple** | red<br/>orange<br/>yellow<br/>green<br/>blue<br/>**indigo**<br/>**violet** |
+
+<CodeBlock lang="diff" title="git diff output">{`diff --git a/rainbow.txt b/rainbow.txt
+index 72d1d5a..f2c8117 100644
+--- a/rainbow.txt
++++ b/rainbow.txt
+@@ -3,4 +3,5 @@
+ yellow
+ green
+ blue
+-purple
++indigo
++violet`}</CodeBlock>
+
+## Reading the output, line by line
+
+Step through the block above, part by part.
+
+<Steps
+  caption="Every git diff block has these parts, always in this order."
+  items={[
+    { icon: "📄", label: "Compared files", note: "diff --git a/… b/… — usually two versions of one file, named A and B." },
+    { icon: "🔢", label: "Metadata", note: "Two file hashes + file mode. Ignore." },
+    { icon: "➖", label: "A marker", note: "--- a/rainbow.txt — file A gets the minus sign." },
+    { icon: "➕", label: "B marker", note: "+++ b/rainbow.txt — file B gets the plus sign." },
+    { icon: "✂️", label: "Chunk", note: "Modified portions + context either side." },
+    { icon: "🎯", label: "Chunk header", note: "@@ -3,4 +3,5 @@ — where each slice starts and how many lines it spans." },
+    { icon: "🌈", label: "Changed lines", note: "- = from A, + = from B." }
+  ]}
+/>
+
+## Decoding `@@ -3,4 +3,5 @@`
+
+The header between the two `@@` marks says which slice of each file you are looking at.
+
+<Diagram caption="Same starting line, different length — A lost one line, B gained two." chart={`
+flowchart LR
+  H["@@ -3,4 +3,5 @@"] --> A["file a<br/>4 lines @3"]
+  H --> B["file b<br/>5 lines @3"]
+`} />
+
+| Part | Reads as |
+| --- | --- |
+| `-3,4` | from **file A**, 4 lines extracted starting at line 3 |
+| `+3,5` | from **file B**, 5 lines extracted starting at line 3 |
+| `-` prefix | this line comes from file A |
+| `+` prefix | this line comes from file B |
+| no prefix | unchanged context line |
+
+## Many files, many chunks
+
+One `git diff` run stacks a block per file, and a file can contain several chunks.
+
+<Steps
+  caption="Walk the structure, then read it verbatim below."
+  items={[
+    { icon: "1️⃣", label: "File 1", note: "helpers.scss — its own diff --git block." },
+    { icon: "✂️", label: "Chunk", note: "One chunk: 11 lines added at line 19." },
+    { icon: "2️⃣", label: "File 2", note: "main.css — a second block, stacked below." },
+    { icon: "🅰️", label: "Chunk 1", note: "At line 22 — four properties added." },
+    { icon: "🅱️", label: "Chunk 2", note: "At line 63 — two lines swapped for six." },
+    { icon: "🧭", label: "Section hint", note: "Text after the closing @@ (h1 {) — orientation only." }
+  ]}
+/>
+
+<CodeBlock lang="diff" title="two files in one diff">{`diff --git a/style/helpers.scss b/style/helpers.scss
+index d530522..1a31a11 100644
+--- a/style/helpers.scss
++++ b/style/helpers.scss
+@@ -19,3 +19,14 @@ @function pow($base, $exponent) {
+ 
+   @return exponent($base, $exponent);
+ }
++
++// Transition mixins
++@mixin transition($args...) {
++  -webkit-transition: $args;
++  -moz-transition: $args;
++}
++
++@mixin transition-property($args...) {
++  -webkit-transition-property: $args;
++  -moz-transition-property: $args;
++}
+diff --git a/style/main.css b/style/main.css
+index e05c4fe..8d875b1 100644
+--- a/style/main.css
++++ b/style/main.css
+@@ -22,6 +22,10 @@ h1 {
+   margin-top: 50px;
+   position: relative;
+   padding: 15px;
++  cursor: default;
++  -webkit-touch-callout: none;
++  -webkit-user-select: none;
++  -moz-user-select: none;
+   background: #bbada0;
+   border-radius: 6px;
+   width: 500px;
+@@ -63,8 +67,12 @@ h1 {
+   background: #eee4da;
+   text-align: center;
+   line-height: 116.25px;
+-  font-size: 60px;
+-  font-weight: bold; }
++  font-size: 55px;
++  font-weight: bold;
++  -webkit-transition: 200ms ease;
++  -moz-transition: 200ms ease;
++  -webkit-transition-property: top, left;
++  -moz-transition-property: top, left; }
+   .tile.tile-position-1-1 {
+     position: absolute;
+     left: 0px;`}</CodeBlock>
+
+## Narrowing it down
+
+Pass a filename to diff just that file.
+
+<CodeBlock lang="bash" title="one file at a time">{`git diff HEAD rainbow.txt        # unstaged + staged changes, this file only
+git diff --staged rainbow.txt    # staged changes, this file only`}</CodeBlock>
+
+## Diffing branches and commits
+
+Give `git diff` two names separated by `..` and it compares their tips.
+
+<GitGraph
+  caption="branch1..branch2 compares the two tips — not the whole path between them."
+  commits={[
+    { id: "c1", label: "Base commit", lane: 0, note: "Shared ancestor of both branches." },
+    { id: "c2", label: "main: fix nav", lane: 0, parents: ["c1"], note: "main moves ahead." },
+    { id: "c3", label: "feature: new UI", lane: 1, parents: ["c1"], note: "feature branches off the base." },
+    { id: "c4", label: "main: dark mode", lane: 0, parents: ["c2"], note: "Tip of branch1 — one side of the diff." },
+    { id: "c5", label: "feature: card grid", lane: 1, parents: ["c3"], note: "Tip of branch2 — the other side." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="branches and commits">{`git diff main..feature          # changes between the tips of two branches
+git diff 4b2f1a9..9c7d3e1       # changes between two commits, by hash`}</CodeBlock>
+
+## In 30 seconds
+
+<Diagram caption="Read any diff top to bottom in this order." chart={`
+flowchart LR
+  A["diff --git<br/>which files"] --> B["index<br/>ignore"] --> C["--- a<br/>+++ b"] --> D["@@ chunk @@"] --> E["- from A<br/>+ from B"]
+`} />
+
+| You want | Command |
+| --- | --- |
+| Unstaged work | `git diff` |
+| Everything since last commit | `git diff HEAD` |
+| What the next commit will contain | `git diff --staged` |
+| One file only | `git diff HEAD [file]` |
+| Two branches | `git diff branch1..branch2` |
+| Two commits | `git diff commit1..commit2` |
