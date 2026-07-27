@@ -1,0 +1,130 @@
+---
+title: "Getting started with Git"
+domain: "git"
+summary: "Terminal or GUI, installing Git on Mac and Windows, and the two config commands you run once."
+tags: ["git", "cli", "gui", "setup", "config"]
+difficulty: "beginner"
+updated: "2026-07-27"
+icon: "⌨️"
+order: 2
+---
+
+<Analogy>
+Git is a terminal tool wearing a GUI costume. The costume is optional — the tool underneath never changes.
+</Analogy>
+
+<TLDR>
+- Git was built as a **command-line tool**: you type `git` commands into a Unix shell.
+- **GUIs** are friendlier wrappers over the same thing.
+- Developer, or becoming one? **Learn the command-line** — you'll need it anyway.
+- Install: Mac → installer package. Windows → Git For Windows, which gives you **Git Bash**.
+- Configure once: `user.name` and `user.email`. **No account, no signup.**
+</TLDR>
+
+## Git is (primarily) a terminal tool
+
+Not the friendliest experience — but it is the very core of Git.
+
+<CodeBlock lang="bash" title="the usual shape">{`git <command> [--flags] [args]   # e.g. git commit -m "message"
+`}</CodeBlock>
+
+## The rise of GUI's
+
+Companies built graphical clients so you don't have to be a command-line expert.
+
+<Steps
+  linked={false}
+  caption="Same Git underneath — pick one for your OS, most install in a click."
+  items={[
+    { icon: "🐙", label: "GitHub Desktop", note: "GitHub's own free client." },
+    { icon: "🌳", label: "SourceTree", note: "Atlassian's free client." },
+    { icon: "🗼", label: "Tower", note: "Long-running paid client." },
+    { icon: "🦑", label: "GitKraken", note: "Used throughout the course — free tier is enough." },
+    { icon: "🎣", label: "Ungit", note: "Runs Git in your browser." }
+  ]}
+/>
+
+## GUI vs command-line
+
+### 🖱️ GUI clients
+
+| ✅ Pros | ⚠️ Cons |
+| --- | --- |
+| Low barrier for beginners | Lots of "magic" |
+| Friendlier — when it works | Inner workings hidden |
+| Visual, even for CLI experts | Locked to one piece of software |
+| | No CLI = hard to fix a mess |
+| | Buttons vary between GUI's |
+
+### ⌨️ Command-line
+
+| ✅ Pros | ⚠️ Cons |
+| --- | --- |
+| All docs use it | Not beginner-friendly. At all |
+| Way faster once comfortable | Commands hard to remember at first |
+| Advanced features are CLI-only | Bad experience even for some pros |
+| Same commands on every machine | |
+
+<Callout type="info">
+The CLI-vs-GUI thing is largely preference. There is a lot of stupid GUI gate-keeping out there — ignore it.
+</Callout>
+
+## So which do you pick?
+
+<Diagram caption="Devs need the CLI anyway. Everyone else: try a GUI (or don't)." chart={`
+flowchart TD
+  A{"Developer?"} -- yes --> B["Learn the<br/>command-line"]
+  A -- "other purposes" --> D["Try a GUI"]
+`} />
+
+## Installing Git
+
+Trickier. Git is intended for Unix-style systems (Linux, macOS), so Windows takes a couple of extra steps.
+
+<Steps
+  caption="Mac install — check, download, check again."
+  items={[
+    { icon: "🔎", label: "Check first", note: "git --version — nothing, or an old version? install." },
+    { icon: "⬇️", label: "Download", note: "Latest installer package from git-scm.com/downloads." },
+    { icon: "✅", label: "Verify", note: "Run git --version again — it should print the new version." }
+  ]}
+/>
+
+<Steps
+  caption="Windows install — the .exe brings a Unix shell with it, and it's super easy."
+  items={[
+    { icon: "⬇️", label: "Download", note: "Git For Windows, from gitforwindows.org." },
+    { icon: "📦", label: "Run the .exe", note: "Find the downloaded file and open it to execute." },
+    { icon: "🐚", label: "Git Bash", note: "A Unix Git command-line, emulated on Windows." }
+  ]}
+/>
+
+## Configuring Git
+
+Two facts Git attaches to every commit.
+
+<Steps
+  linked={false}
+  caption="Run once, before your first commit."
+  items={[
+    { icon: "🧑", label: "Your name", note: "Stamped on every commit." },
+    { icon: "✉️", label: "Your email", note: "Match your GitHub account later." },
+    { icon: "🖱️", label: "On a GUI", note: "Prompts you on first launch." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="run once, globally">{`# --global = every repo for this user account
+# the name Git will associate with your work
+git config --global user.name "Tom Hulce"
+
+# your email — match it to your Github account later
+git config --global user.email blah@blah.com
+`}</CodeBlock>
+
+## In 30 seconds
+
+<Diagram caption="From zero to ready. Let's get started!" chart={`
+flowchart LR
+  A["install Git"] --> B["git config"] --> C["ready"]
+  A -.optional.-> D["install a GUI"] -.-> C
+`} />
