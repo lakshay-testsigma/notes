@@ -1,0 +1,164 @@
+---
+title: "Rebasing"
+domain: "git"
+summary: "Move a branch so it BEGINS at the tip of master — linear history, no merge commits, and one rule you must never break."
+tags: ["git", "rebase", "history", "interactive-rebase", "workflow"]
+difficulty: "advanced"
+updated: "2026-07-27"
+icon: "📐"
+order: 14
+---
+
+<Analogy>
+Merging staples master into your branch again and again. Rebasing picks your
+branch up and re-plants it on master's tip.
+</Analogy>
+
+<Steps
+  caption="Everyone's rebase story: scared for years, then it turns out to be fine."
+  items={[
+    { icon: "😨", label: "Warned off", note: "“Avoid rebasing at all costs.”" },
+    { icon: "🚫", label: "Not for beginners", note: "“It can really #%@* things up.”" },
+    { icon: "🕰️", label: "Avoided YEARS", note: "So I never touched git rebase." },
+    { icon: "💡", label: "Actually useful", note: "It is — as long as you know when NOT to use it." }
+  ]}
+/>
+
+<TLDR>
+- Two uses: **an alternative to merging**, and **a cleanup tool**.
+- `git rebase master` moves your feature branch to **begin at master's tip**.
+- All the work is still there, but history is **re-written** — brand-new commits.
+- Payoff: **linear history, no unnecessary merge commits**.
+- **Never rebase commits you have already shared.** Seriously.
+</TLDR>
+
+## Two ways to use it
+
+<Steps
+  linked={false}
+  caption="The whole command, split in two. Everything below is one of these."
+  items={[
+    { icon: "🔀", label: "Instead of merging", note: "Re-plant a branch on the tip of another branch." },
+    { icon: "🧹", label: "Cleanup tool", note: "Polish your own commits before sharing." }
+  ]}
+/>
+
+## The problem: merge-commit soup
+
+<GitGraph
+  caption="Merging master in over and over is what muddies history. Hollow dots = merge commits — two already, and the feature isn't done."
+  commits={[
+    { id: "m1", label: "master", lane: 0, note: "I'm working on a collaborative project." },
+    { id: "m2", label: "branch point", lane: 0, parents: ["m1"], note: "I cut a feature branch here — it points at master's tip." },
+    { id: "f1", label: "feature work", lane: 1, parents: ["m2"], note: "I do some work on the branch." },
+    { id: "f2", label: "more work", lane: 1, parents: ["f1"], note: "I do some more work." },
+    { id: "m3", label: "master moves", lane: 0, parents: ["m2"], note: "Master moved on — my branch is missing it." },
+    { id: "f3", label: "merge commit", lane: 1, parents: ["f2", "m3"], note: "I merge master into feature → this results in a new merge commit." },
+    { id: "f4", label: "keep working", lane: 1, parents: ["f3"], note: "I keep working on my feature branch." },
+    { id: "m4", label: "coworker commit", lane: 0, parents: ["m3"], note: "A coworker adds new work to master." },
+    { id: "f5", label: "merge commit 2", lane: 1, parents: ["f4", "m4"], note: "I merge master in again → yet another merge commit!" }
+  ]}
+/>
+
+## The fix: rebase instead
+
+<CodeBlock lang="bash" title="Rebase feature onto master">{`git switch feature   # stand on the branch you want to move
+git rebase master    # re-plant it so it BEGINS at master's tip`}</CodeBlock>
+
+<GitGraph
+  caption="After the rebase: master's line first, then your work replayed on top of it."
+  commits={[
+    { id: "m1", label: "master", lane: 0, note: "Master's history is untouched." },
+    { id: "m2", label: "branch point", lane: 0, parents: ["m1"], note: "Where the feature branch used to start." },
+    { id: "m3", label: "master moves", lane: 0, parents: ["m2"], note: "The work my branch was missing." },
+    { id: "m4", label: "coworker commit", lane: 0, parents: ["m3"], note: "Master's tip — the feature branch now BEGINS here." },
+    { id: "r1", label: "feature work", lane: 0, parents: ["m4"], note: "Re-created as a brand-new commit." },
+    { id: "r2", label: "more work", lane: 0, parents: ["r1"], note: "Same work, new commit — history is re-written." },
+    { id: "r3", label: "keep working", lane: 0, parents: ["r2"], note: "No merge commit — one straight line." }
+  ]}
+/>
+
+| | Merge master in | Rebase onto master |
+| --- | --- | --- |
+| Result | Extra merge commit each time | No merge commit |
+| Shape | Branchy, muddied | Linear |
+| Commits | Originals kept | **New** commits re-created |
+| History | Preserved | **Re-written** |
+
+## When to run it
+
+<Steps
+  linked={false}
+  caption="Both are valid — same two commands either way."
+  items={[
+    { icon: "🔁", label: "As you go", note: "Rebase whenever master moves, instead of merging it in." },
+    { icon: "🏁", label: "At the end", note: "Wait until the feature is done, then rebase onto master." }
+  ]}
+/>
+
+## WARNING
+
+<Diagram caption="One question decides it. Rewriting history other people already have is a pain to reconcile — unless you are positive nobody on the team has those commits." chart={`
+flowchart LR
+  A{"pushed<br/>already?"} -- yes --> B["do NOT<br/>rebase"]
+  A -- no --> C["rebase<br/>freely"]
+`} />
+
+## Use 2 — rewriting history
+
+<Steps
+  linked={false}
+  caption="Four cleanups, all before you share — git rebase -i does every one of them."
+  items={[
+    { icon: "✏️", label: "Rewrite", note: "Change what a commit contains." },
+    { icon: "🗑️", label: "Delete", note: "Drop a commit entirely." },
+    { icon: "🏷️", label: "Rename", note: "Edit the commit message." },
+    { icon: "🔀", label: "Reorder", note: "Move commits up or down the list." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="Interactive rebase">{`# -i = interactive mode; HEAD~4 = how far back to rewrite
+git rebase -i HEAD~4`}</CodeBlock>
+
+<Callout type="info">
+Note: here we are **not** rebasing onto another branch. We are rebasing a series
+of commits onto the HEAD they are currently based on.
+</Callout>
+
+## What now?
+
+<Steps
+  caption="One interactive rebase, beat by beat."
+  items={[
+    { icon: "📝", label: "Editor opens", note: "A todo list of commits, each prefixed pick." },
+    { icon: "🔤", label: "Swap verbs", note: "Replace pick with reword, edit, fixup or drop." },
+    { icon: "💾", label: "Save and close", note: "Git replays the series as brand-new commits." }
+  ]}
+/>
+
+| Command | Does |
+| --- | --- |
+| `pick` | Use the commit |
+| `reword` | Use the commit, but edit the commit message |
+| `edit` | Use the commit, but stop to amend — add files, fix content |
+| `fixup` | Meld contents into the previous commit, discard its message |
+| `drop` | Remove the commit |
+| …more | The editor lists others too — `squash`, `break`, `exec` |
+
+<CodeBlock lang="text" title="Before — the editor hands you this">{`pick f7f3f6d Change my name a bit
+pick 310154e Update README
+pick a5f4a0d Add cat-file`}</CodeBlock>
+
+<CodeBlock lang="text" title="After — swap 'pick' for what you want">{`drop   f7f3f6d Change my name a bit
+pick   310154e Update README
+reword a5f4a0d Add cat-file`}</CodeBlock>
+
+## In 30 seconds
+
+<Diagram caption="Which rebase — if any — you reach for." chart={`
+flowchart TD
+  A{"pushed?"} -- yes --> B["merge instead"]
+  A -- no --> C{"whose commits?"}
+  C -- "other branch" --> D["rebase master"]
+  C -- "my own" --> E["rebase -i"]
+`} />
