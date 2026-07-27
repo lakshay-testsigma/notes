@@ -1,0 +1,160 @@
+---
+title: "Merging branches"
+domain: "git"
+summary: "git merge folds a branch into the one you're standing on — fast-forward, merge commit, or conflict markers you fix by hand."
+tags: ["git", "branching", "merge", "conflicts"]
+difficulty: "intermediate"
+updated: "2026-07-27"
+icon: "🔀"
+order: 6
+---
+
+<Analogy>
+Branches let you work in a sealed-off side quest. Merging brings the loot back
+to the main story.
+</Analogy>
+
+<TLDR>
+- `git merge` incorporates changes from one branch into another.
+- Two rules: you merge **branches, not commits**, and always **into the current HEAD branch**.
+- Nothing diverged → **fast-forward**: the pointer just slides forward.
+- Both sides moved → **merge commit**: a new commit on the receiving branch, message prompted.
+- Git can't decide → **merge conflict**: edit the markers yourself, then add and commit.
+</TLDR>
+
+## Two rules that trip everyone up
+
+<Steps
+  linked={false}
+  caption="Remember these and git merge stops being confusing."
+  items={[
+    { icon: "🌿", label: "Branches, not commits", note: "You merge a whole branch — never one specific commit." },
+    { icon: "📍", label: "Into current HEAD", note: "The merge always lands on the branch you're standing on." }
+  ]}
+/>
+
+## Merging made easy
+
+<Steps
+  caption="Two moves, always in this order."
+  items={[
+    { icon: "🚚", label: "Switch to receiver", note: "Check out the branch you want the changes merged INTO." },
+    { icon: "🔀", label: "Merge the other", note: "git merge <branch> pulls its changes into the current branch." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="Merge bugfix into master">{`# 1. stand on the receiving branch
+git switch master
+# 2. pull the other branch's work in
+git merge bugfix`}</CodeBlock>
+
+## Fast-forward
+
+Master never moved while you worked, so there is nothing to reconcile.
+
+<Steps
+  caption="Master simply catches up on the commits from Bugfix."
+  items={[
+    { icon: "🌱", label: "Branch off", note: "Bugfix starts at 236ff… — where Master is sitting." },
+    { icon: "✍️", label: "Two commits", note: "92faa… and 2456… land on Bugfix. Master hasn't budged." },
+    { icon: "🚚", label: "Switch master", note: "git switch master — HEAD now on the receiving branch." },
+    { icon: "⏩", label: "Fast-forward", note: "git merge bugfix — no new commit, the Master pointer just slides forward." },
+    { icon: "🤝", label: "Same commit", note: "Master and Bugfix both point at 2456…, until they diverge again." }
+  ]}
+/>
+
+<Diagram caption="What it really looks like: branches are just pointers, so this was one straight line all along." chart={`
+flowchart LR
+  A["987fac…"] --> B["236ff…"] --> C["92faa…"] --> D["2456…"]
+  D --- M["Master + Bugfix<br/>HEAD"]
+`} />
+
+## Not all merges are fast-forwards
+
+A teammate lands work on master while you're on your branch — this happens all the time.
+
+<GitGraph
+  caption="Both sides moved, so Git writes a NEW COMMIT (hollow dot) with two parents."
+  commits={[
+    { id: "c1", label: "987fac…", lane: 0, note: "Master's history so far." },
+    { id: "c2", label: "236ff… branch point", lane: 0, parents: ["c1"], note: "You branch bugfix off here." },
+    { id: "c3", label: "92faa…", lane: 1, parents: ["c2"], note: "Your work on bugfix." },
+    { id: "c4", label: "2456…", lane: 1, parents: ["c3"], note: "Bugfix now points here." },
+    { id: "c5", label: "f4faa…", lane: 0, parents: ["c2"], note: "Meanwhile a teammate merges a feature into master. Master moved." },
+    { id: "c6", label: "NEW COMMIT", lane: 0, parents: ["c5", "c4"], note: "git merge bugfix → a merge commit on master. Git prompts you for a message." }
+  ]}
+/>
+
+| Situation | Git does |
+| --- | --- |
+| Receiving branch never moved | **Fast-forward** — move the pointer, no new commit |
+| Both branches moved | **Merge commit** — new commit on the receiving branch, message prompted |
+
+## Heads up: merge conflicts
+
+<Callout type="warning">
+Depending on the changes, Git may not be able to merge automatically. You resolve
+those conflicts by hand.
+</Callout>
+
+<CodeBlock lang="bash" title="Git warns you in the console">{`CONFLICT (content): Merge conflict in blah.txt
+Automatic merge failed; fix conflicts and then commit the result.`}</CodeBlock>
+
+It also rewrites the file to show you what it wants resolved — WHAT THE…
+
+<CodeBlock lang="text" title="blah.txt">{`<<<<<<< HEAD
+I have 2 cats
+I also have chickens
+=======
+I used to have a dog :(
+>>>>>>> bug-fix`}</CodeBlock>
+
+| Between these markers | Content from |
+| --- | --- |
+| `<<<<<<< HEAD` … `=======` | your current **HEAD** — the branch you're merging into |
+| `=======` … `>>>>>>> bug-fix` | the branch you're **merging from** |
+
+## Resolving conflicts
+
+<Steps
+  caption="Four moves, for every conflicted file."
+  items={[
+    { icon: "📂", label: "Open files", note: "Open the file(s) Git listed as conflicted." },
+    { icon: "✂️", label: "Pick content", note: "Decide per conflict: keep yours, keep theirs, or keep both." },
+    { icon: "🧽", label: "Strip markers", note: "Delete the <<<<<<<, ======= and >>>>>>> markers." },
+    { icon: "✅", label: "Add + commit", note: "Stage your changes and make the commit." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="Finish the merge">{`# once every conflicted file is clean
+git add .
+git commit -m "Merge bugfix into master"`}</CodeBlock>
+
+## Deleting a branch
+
+<Steps
+  caption="Merged branches are disposable — the pointer goes, the merged commits stay on master."
+  items={[
+    { icon: "🌿", label: "Bugfix done", note: "Its work is merged into master." },
+    { icon: "🗑️", label: "Delete pointer", note: "git branch -d bugfix" },
+    { icon: "🧹", label: "Clean history", note: "Only the master line is left." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="Delete a branch">{`git branch -d bugfix   # remove the bugfix branch pointer`}</CodeBlock>
+
+<Callout type="tip">
+`-d` refuses to delete a branch whose work isn't merged yet; `-D` forces it.
+</Callout>
+
+## In 30 seconds
+
+<Diagram caption="Every merge you will ever run, as one decision path." chart={`
+flowchart TD
+  A[switch receiver] --> B[git merge other]
+  B --> C{diverged?}
+  C -- no --> D[fast-forward]
+  C -- yes --> E{conflict?}
+  E -- no --> F[merge commit]
+  E -- yes --> G[fix markers] --> H[add + commit]
+`} />
