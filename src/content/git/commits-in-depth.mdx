@@ -1,0 +1,142 @@
+---
+title: "Commits in depth"
+domain: "git"
+summary: "Inline messages, redoing the last commit with --amend, atomic commits, message style, and .gitignore."
+tags: ["git", "commits", "amend", "gitignore"]
+difficulty: "beginner"
+updated: "2026-07-27"
+icon: "✍️"
+order: 4
+---
+
+<Analogy>
+A commit is a snapshot with a sticky note on it. `--amend` peels off the last note and re-takes the photo.
+</Analogy>
+
+<TLDR>
+- `-m` = inline commit message, instead of Git launching a text editor.
+- `--amend` **redoes** the previous commit — fix the message or add a forgotten file.
+- Commit **early and often**, keep commits **atomic**, messages **meaningful but concise**.
+- Git docs suggest **present-tense imperative** ("make xyzzy do frotz"). You don't have to — just be consistent.
+- `.gitignore` in the repo root tells Git which untracked files to ignore.
+</TLDR>
+
+## The `-m` flag
+
+No `-m`, and Git opens a text editor for the message. `-m` passes it inline.
+
+<CodeBlock lang="bash" title="Inline message">{`git commit -m "my message"`}</CodeBlock>
+
+## Configuring your default editor
+
+Which editor Git launches is yours to pick.
+
+<CodeBlock lang="bash" title="Set the commit editor">{`# --wait makes Git pause until you close the VS Code tab
+git config --global core.editor "code --wait"`}</CodeBlock>
+
+## Amending commits
+
+Just committed and forgot a file? Typo in the message? Don't stack a second commit — redo the last one.
+
+<Steps
+  caption="The forgot-a-file flow — one beat at a time."
+  items={[
+    { icon: "✅", label: "Commit", note: "git commit -m 'some commit'" },
+    { icon: "😬", label: "Forgot a file", note: "It never got staged." },
+    { icon: "➕", label: "Stage it", note: "git add forgotten_file" },
+    { icon: "♻️", label: "Amend", note: "git commit --amend — folds it into the commit you just made." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="--amend variants">{`git commit --amend                     # reuse last commit, editor opens for the message
+git commit --amend --no-edit           # skip the editor, keep the old message
+git commit --amend -m "fixed message"  # skip the editor, new message inline`}</CodeBlock>
+
+<GitGraph
+  caption="Amend doesn't edit the old commit — it makes a replacement off the same parent."
+  commits={[
+    { id: "c1", label: "Initialize project", lane: 0, note: "Normal history so far." },
+    { id: "c2", label: "Add navbar", lane: 0, parents: ["c1"], note: "Another checkpoint." },
+    { id: "c3", label: "some commit", lane: 0, parents: ["c2"], note: "Then you spot the typo." },
+    { id: "c4", label: "some commit (amended)", lane: 1, parents: ["c2"], note: "New commit, same parent — old one orphaned." }
+  ]}
+/>
+
+<Callout type="warning">
+`--amend` only touches the **most recent** commit — and since it replaces it, avoid amending anything already pushed.
+</Callout>
+
+## Some basic guidelines
+
+<Steps
+  linked={false}
+  caption="Three habits. Everything else about committing is taste."
+  items={[
+    { icon: "⏱️", label: "Early & often", note: "Commit early and often — small save points beat one giant one." },
+    { icon: "⚛️", label: "Atomic", note: "One change per commit." },
+    { icon: "✍️", label: "Concise", note: "Write meaningful but concise commit messages." }
+  ]}
+/>
+
+## Atomic commits
+
+When possible, one commit = one feature, change, or fix.
+
+<Diagram caption="Focused commits are cheap to undo and cheap to review." chart={`
+flowchart LR
+  A["1 giant commit"] --> B["rollback hurts"]
+  A --> C["review hurts"]
+  D["3 atomic commits"] --> E["undo just one"]
+  D --> F["easy review"]
+`} />
+
+## Writing commit messages
+
+Present or past tense? Does it really matter?
+
+> From the Git docs: Describe your changes in imperative mood, as if you are giving orders to the codebase to change its behavior.
+
+| Style | Message |
+| ----- | ------- |
+| ✅ Imperative (docs' pick) | `make xyzzy do frotz` |
+| ✅ Past tense (many devs) | `made xyzzy do frotz` |
+| 🚫 Docs advise against | `[This patch] makes xyzzy do frotz` |
+| 🚫 Docs advise against | `I changed xyzzy to do frotz` |
+
+<Callout type="tip">
+You do **not** have to follow the imperative pattern. All that matters is consistency — especially on a team where many people commit.
+</Callout>
+
+## Ignoring files
+
+Some files you know you NEVER want to commit.
+
+<Steps
+  linked={false}
+  caption="The usual suspects for .gitignore."
+  items={[
+    { icon: "🔑", label: "Secrets", note: "Secrets, API keys, credentials." },
+    { icon: "🍎", label: "OS files", note: "Operating system files — .DS_Store on Mac." },
+    { icon: "📜", label: "Logs", note: "Log files." },
+    { icon: "📦", label: "Dependencies", note: "Dependencies & packages." }
+  ]}
+/>
+
+<CodeBlock lang="gitignore" title=".gitignore — in the repo root">{`.DS_Store
+folderName/
+*.log`}</CodeBlock>
+
+| Pattern | Ignores |
+| ------- | ------- |
+| `.DS_Store` | Files named exactly that |
+| `folderName/` | An entire directory |
+| `*.log` | Any file with the `.log` extension |
+
+## In 30 seconds
+
+<Diagram caption="The commit loop, with the escape hatch." chart={`
+flowchart LR
+  A[".gitignore filters"] --> B["git add"] --> C["commit -m"] --> D{"mistake?"}
+  D -- yes --> E["--amend"] --> C
+  D -- no --> F["next atomic commit"]
+`} />
