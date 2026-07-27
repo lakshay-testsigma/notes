@@ -12,11 +12,13 @@ interface ChartProps {
   data: { label: string; value: number }[];
   valueLabel?: string;
   caption?: string;
+  /** bar fill — a CSS var only, so it stays theme-correct; always keep a fallback */
+  color?: `var(--${string})`;
 }
 
-export function Chart({ data, valueLabel = "Value", caption }: ChartProps) {
+export function Chart({ data, valueLabel = "Value", caption, color = "var(--chart-2)" }: ChartProps) {
   const config = {
-    value: { label: valueLabel, color: "var(--chart-2)" },
+    value: { label: valueLabel, color },
   } satisfies ChartConfig;
 
   return (
