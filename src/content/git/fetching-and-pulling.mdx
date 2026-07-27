@@ -1,0 +1,205 @@
+---
+title: "Fetching & pulling"
+domain: "git"
+summary: "origin/master is a bookmark, not a live feed — fetch moves the bookmark, pull moves your branch."
+tags: ["git", "remotes", "fetch", "pull", "collaboration"]
+difficulty: "intermediate"
+updated: "2026-07-27"
+icon: "⬇️"
+order: 11
+---
+
+<Analogy>
+`origin/master` is a bookmark, not a live feed. It says where the remote *was* the
+last time you two spoke.
+</Analogy>
+
+<TLDR>
+- `clone` gives you two refs: **`master`** (yours, movable) and **`origin/master`** (a remote-tracking branch you can't move).
+- Local commits move `master`. `origin/master` sits still until you talk to the remote.
+- **`git fetch`** = download + move `origin/master`. Your files are untouched. Always safe.
+- **`git pull`** = `git fetch` + `git merge`. Updates your current branch — and can conflict.
+- `git branch -r` lists remote-tracking branches; `git switch <name>` makes a local branch that tracks one.
+</TLDR>
+
+## A closer look at cloning
+
+<Steps
+  caption="One clone, two references — only one of them is yours to move."
+  items={[
+    { icon: "🐙", label: "Remote", note: "GitHub repo with a master branch." },
+    { icon: "📥", label: "git clone", note: "Full copy of the data and history, at that moment in time." },
+    { icon: "🌿", label: "master", note: "A regular branch reference. I can move this around myself." },
+    { icon: "🔖", label: "origin/master", note: "Bookmark to origin's last known commit. I can't move it." }
+  ]}
+/>
+
+## Remote-tracking branches
+
+They follow the pattern `<remote>/<branch>`.
+
+| Ref | Reads as |
+| --- | --- |
+| `origin/master` | state of `master` on the remote named **origin** |
+| `upstream/logoRedesign` | state of `logoRedesign` on the remote named **upstream** (a common remote name) |
+
+<Callout type="info">
+"At the time you last communicated with this remote repository, here is where x branch was pointing."
+</Callout>
+
+<CodeBlock lang="bash" title="see what your repo knows about">{`git branch -r     # remote-tracking branches only
+# origin/master`}</CodeBlock>
+
+## Local commits don't move the remote ref
+
+<Steps
+  caption="master runs ahead. origin/master doesn't budge — nobody told it anything."
+  items={[
+    { icon: "🟰", label: "Just cloned", note: "master and origin/master point at the same commit." },
+    { icon: "✍️", label: "Commit", note: "master moves forward. The remote reference stays put." },
+    { icon: "✍️", label: "Commit again", note: "master moves again. origin/master still hasn't moved!" },
+    { icon: "📣", label: "git status", note: "Your branch is ahead of 'origin/master' by 2 commits." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="git status">{`On branch master
+Your branch is ahead of 'origin/master' by 2 commits.
+  (use "git push" to publish your local commits)`}</CodeBlock>
+
+### "What did this look like when I cloned?"
+
+<CodeBlock lang="bash" title="checkout a remote pointer">{`git checkout origin/master   # time-travel to the last known remote state
+# Note: switching to 'origin/master'.
+# You are in 'detached HEAD' state...`}</CodeBlock>
+
+<Callout type="tip">
+Detached HEAD! Don't panic. It's fine — look around, then switch back to a branch.
+</Callout>
+
+## Cloned ≠ in your workspace
+
+You have **all** the data and history. That doesn't mean every branch is checked out locally.
+
+<Steps
+  caption="The puppies branch was always there — it just wasn't a local branch yet."
+  items={[
+    { icon: "🐙", label: "Remote", note: "GitHub repo has master and puppies." },
+    { icon: "🌿", label: "git branch", note: "Only *master. Where did puppies go?" },
+    { icon: "🛰️", label: "git branch -r", note: "origin/master AND origin/puppies — the data is here." },
+    { icon: "🔀", label: "git switch puppies", note: "Creates a local puppies branch AND tracks origin/puppies." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="from remote-tracking to a real local branch">{`git branch          # *master
+git branch -r       # origin/master, origin/puppies
+
+git switch puppies  # local branch + tracking, in one move
+# Branch 'puppies' set up to track remote branch 'puppies' from 'origin'.
+# Switched to a new branch 'puppies'
+
+git checkout --track origin/puppies   # the old, clunkier way`}</CodeBlock>
+
+| Workspace | tracks | Remote |
+| --- | --- | --- |
+| `master` | → | `origin/master` *(set up by clone, for free)* |
+| `puppies` | → | `origin/puppies` *(set up by `git switch`)* |
+
+<Callout type="warning">
+Checking out `origin/puppies` directly only gives you detached HEAD — commits there belong to no branch.
+</Callout>
+
+## Where fetch and pull land
+
+<Diagram caption="Fetch stops at your local repo. Pull carries on into your working files." chart={`
+flowchart LR
+  W["Workspace"] -- "git add" --> S["Staging"]
+  S -- "git commit" --> L["Local repo"]
+  L -- "git push" --> R["Remote repo"]
+  R -. "git fetch" .-> L
+  R == "git pull" ==> W
+`} />
+
+## Fetching
+
+"Please go get the latest information from GitHub, but don't screw up my working directory."
+
+<Steps
+  caption="A teammate pushed. Fetch brings it down without touching your work."
+  items={[
+    { icon: "😱", label: "Remote moved", note: "A teammate pushed to master. My repo has no idea." },
+    { icon: "⬇️", label: "git fetch", note: "Downloads their branches and history." },
+    { icon: "🔖", label: "origin/master", note: "Bookmark jumps forward. Nothing is integrated." },
+    { icon: "🙂", label: "My files", note: "Untouched. See what others did, merge later." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="git fetch">{`git fetch <remote>            # branches + history from that remote
+git fetch <remote> <branch>   # just one branch from it
+
+git fetch origin              # everything from the origin remote
+git fetch                     # <remote> defaults to origin
+git fetch origin master       # just the master branch from origin`}</CodeBlock>
+
+<Callout type="tip">
+The commits are on your machine — `git checkout origin/master` to actually *look* at them.
+</Callout>
+
+## Pulling
+
+"Go download data from GitHub AND immediately update my local repo with it."
+
+<Diagram caption="One command, two familiar steps." chart={`
+flowchart LR
+  P["git pull"] --> F["git fetch"] --> A["origin/master<br/>updated"]
+  P --> M["git merge"] --> B["current branch<br/>updated"]
+`} />
+
+Just like `git merge`, **where you run it matters** — the changes merge into whatever branch you're on.
+
+<CodeBlock lang="bash" title="git pull">{`git pull <remote> <branch>   # the general form
+git pull origin master       # fetch origin's master, merge into my current branch
+git pull                     # remote → origin; branch → my tracking connection`}</CodeBlock>
+
+| On branch | Bare `git pull` pulls from |
+| --- | --- |
+| `master` | `origin/master` |
+| `puppies` | `origin/puppies` |
+
+<GitGraph
+  caption="Their two commits, my one commit — pull is what combines them."
+  commits={[
+    { id: "c1", label: "Shared base", lane: 0, note: "master and origin/master both point here." },
+    { id: "c2", label: "My commit", lane: 0, parents: ["c1"], note: "master moves. origin/master stays behind." },
+    { id: "t1", label: "Teammate A", lane: 1, parents: ["c1"], note: "Pushed to GitHub. My repo doesn't know it exists." },
+    { id: "t2", label: "Teammate B", lane: 1, parents: ["t1"], note: "origin/master jumps here. My master untouched." },
+    { id: "m1", label: "Merge (pull)", lane: 0, parents: ["c2", "t2"], note: "Pull = that fetch + a merge into master." }
+  ]}
+/>
+
+<Callout type="warning">
+Pulls can result in **merge conflicts** — a pull is a merge. If you have a local commit the remote doesn't, it gets merged with theirs.
+</Callout>
+
+<Callout type="info">
+Both defaults are configurable and tracking connections can be changed by hand. Most people don't mess with that stuff.
+</Callout>
+
+## fetch vs pull
+
+| | `git fetch` | `git pull` |
+| --- | --- | --- |
+| Gets remote changes | ✅ | ✅ |
+| Updates remote-tracking branches | ✅ | ✅ |
+| Merges into current HEAD branch | ❌ | ✅ |
+| Merge conflicts possible | ❌ | ✅ |
+| Safe to run anytime | ✅ always | ⚠️ not with uncommitted changes |
+
+## In 30 seconds
+
+<Diagram caption="Pick by what you want to happen to your working files." chart={`
+flowchart TD
+  Q{"Their changes?"} -- "just look" --> F["git fetch"]
+  Q -- "want them now" --> P["git pull"]
+  F --> A["bookmark moves<br/>files safe"]
+  P --> B["branch moves<br/>may conflict"]
+`} />
