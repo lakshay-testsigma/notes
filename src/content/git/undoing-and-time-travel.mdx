@@ -1,0 +1,234 @@
+---
+title: "Undoing & time travel"
+domain: "git"
+summary: "Detach HEAD to visit the past, restore files, and undo commits — reset when it's private, revert when it's shared."
+tags: ["git", "undo", "head", "checkout", "restore", "reset", "revert"]
+difficulty: "intermediate"
+updated: "2026-07-27"
+icon: "⏪"
+order: 9
+---
+
+<Analogy>
+HEAD is your finger on the map. Usually it rests on a branch name; point it straight at an old commit and you're standing in the past.
+</Analogy>
+
+<TLDR>
+- `git checkout` is the **Swiss Army knife** — so overloaded that `switch` and `restore` were added.
+- **HEAD → branch → last commit.** Checkout a raw hash and HEAD skips the branch: **detached HEAD**. Not a bug, not a panic.
+- `git restore` un-modifies a file — **not undoable**; `--staged` un-stages it — harmless.
+- `git reset` moves the branch pointer back — commits gone, files kept. `--hard` kills the changes too.
+- `git revert` adds a *new* commit that undoes an old one. **Shared history → revert. Private → reset.**
+</TLDR>
+
+## checkout does a million things
+
+<Steps
+  linked={false}
+  caption="One command, four jobs — which is exactly why switch and restore exist now."
+  items={[
+    { icon: "🌱", label: "Create branch", note: "git checkout -b feature" },
+    { icon: "🔀", label: "Switch branch", note: "Now git switch does this." },
+    { icon: "♻️", label: "Restore files", note: "Now git restore does this." },
+    { icon: "⏪", label: "Undo history", note: "Visit any old commit." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="visit a previous commit">{`git log            # find commit hashes
+git checkout d8194d6   # first 7 digits of the hash is enough`}</CodeBlock>
+
+## How HEAD normally works
+
+<Diagram caption="HEAD points at a branch reference; the branch reference points at its last commit." chart={`
+flowchart LR
+  A["987fac…"] --> B["d8194d6"] --> C["171615…"]
+  H([HEAD]) --> M[master] --> C
+`} />
+
+<Steps
+  caption="The branch pointer moves. HEAD sits still — it was never pointing at a commit."
+  items={[
+    { icon: "📍", label: "HEAD → master", note: "master's last commit is 171615…" },
+    { icon: "✍️", label: "New commit", note: "f9e321… is created." },
+    { icon: "➡️", label: "master moves", note: "The branch reference now points at f9e321…" },
+    { icon: "🧷", label: "HEAD unchanged", note: "Still points at master, so it follows along." },
+    { icon: "🔀", label: "git switch bugfix", note: "Only now does HEAD move — to the bugfix reference." }
+  ]}
+/>
+
+## Detached HEAD
+
+<Diagram caption="Checkout a hash and HEAD bypasses the branch — it points back at an older commit." chart={`
+flowchart LR
+  A["987fac…"] --> B["d8194d6"] --> C["171615…"]
+  H([HEAD]) --> B
+  M[master] --> C
+`} />
+
+<CodeBlock lang="bash" title="what Git prints">{`$ git checkout d8194d6
+# You are in 'detached HEAD' state. You can look around, make
+# experimental changes and commit them, and you can discard any
+# commits you make in this state without impacting any branches
+# by switching back to a branch.`}</CodeBlock>
+
+<Callout type="info">
+What on earth is going on?? Don't panic — it's not a bad thing. You have three options.
+</Callout>
+
+<Steps
+  linked={false}
+  caption="Detached HEAD: stay, leave, or plant a flag."
+  items={[
+    { icon: "🔍", label: "Stay & look", note: "Examine the old commit — view files, poke around." },
+    { icon: "↩️", label: "Re-attach", note: "git switch master — back where you were." },
+    { icon: "🌿", label: "New branch", note: "git switch -c newbranch — HEAD re-attached." }
+  ]}
+/>
+
+## Time travel: branch off the past
+
+<GitGraph
+  caption="Go back to an old commit, plant a branch, keep building — that's the time travel."
+  commits={[
+    { id: "c1", label: "987fac…", lane: 0, note: "Where the history starts." },
+    { id: "c2", label: "d8194d6", lane: 0, parents: ["c1"], note: "The old commit you want to return to." },
+    { id: "c3", label: "171615… (master)", lane: 0, parents: ["c2"], note: "master's tip — where you started." },
+    { id: "c4", label: "4a4d6 (newbranch)", lane: 1, parents: ["c2"], note: "New branch grown off d8194d6." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="the whole trip">{`git checkout d8194d6      # detached HEAD at the old commit
+git switch -c newbranch   # plant a branch here — HEAD re-attached
+git add .
+git commit -m "new commit"  # commit freely, as many as you want`}</CodeBlock>
+
+## The HEAD~ syntax
+
+<Diagram caption="~n counts backwards from HEAD: 1 = parent, 2 = grandparent." chart={`
+flowchart LR
+  D["987fac…<br/>HEAD~3"] --> C["d8194d6<br/>HEAD~2"] --> B["171615…<br/>HEAD~1"] --> A["f9e321…<br/>HEAD"]
+`} />
+
+<CodeBlock lang="bash" title="relative references">{`git checkout HEAD~1   # the commit before HEAD (parent)
+git checkout HEAD~2   # two before HEAD (grandparent)`}</CodeBlock>
+
+Not essential — just weird-looking the first time you meet it.
+
+## Discarding file changes
+
+<Steps
+  caption="One file, one round trip — edit, discard, back to the committed state."
+  items={[
+    { icon: "✍️", label: "Edit & save", note: "app.js now differs from the last commit." },
+    { icon: "🙅", label: "Don't want it", note: "git checkout HEAD app.js" },
+    { icon: "✅", label: "Back to HEAD", note: "The file looks exactly as it did when you last committed." }
+  ]}
+/>
+
+| Command | From | Does |
+| --- | --- | --- |
+| `git checkout HEAD <file>` | HEAD | Discard changes in that file |
+| `git checkout -- <file>` | index | Discard changes — reads the index, not HEAD |
+| `git restore <file>` | index | The modern equivalent |
+
+## restore
+
+New-ish — most tutorials and books predate it.
+
+<Steps
+  linked={false}
+  caption="Three jobs, one command — pick the option that matches the mistake."
+  items={[
+    { icon: "🧽", label: "Un-modify", note: "git restore app.js — back to the staged version." },
+    { icon: "🕰️", label: "Other source", note: "--source HEAD~1 or a commit hash." },
+    { icon: "📤", label: "Un-stage", note: "--staged removes it from the staging area." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="restore">{`git restore app.js                      # discard changes — from the index
+git restore --source HEAD~1 home.html   # contents from the commit before HEAD
+git restore --source d8194d6 app.js     # or any commit hash
+git restore --staged app.js             # added by mistake? un-stage it`}</CodeBlock>
+
+<Callout type="warning">
+`git restore <file>` is **not undoable**. Uncommitted changes in that file are gone.
+</Callout>
+
+<Callout type="tip">
+Feeling confused? `git status` reminds you which command to use.
+</Callout>
+
+## reset — move the pointer back
+
+*"OH NO! I didn't mean to make that commit here!"* — e.g. commits landed on `master` that belonged on a branch.
+
+<CodeBlock lang="bash" title="reset">{`# history: bb43f1f → 0026739 → 39c3fdd
+git reset 0026739         # rewind to a hash
+git reset HEAD~2          # …or count back 2 commits
+git reset --hard HEAD~1   # add --hard to drop the changes too`}</CodeBlock>
+
+<Steps
+  caption="reset rewinds the branch pointer; --hard rewinds your files with it."
+  items={[
+    { icon: "😱", label: "Bad commit", note: "39c3fdd touched about.html + lisa.jpg." },
+    { icon: "⏮️", label: "git reset 0026739", note: "Branch pointer moves back to 0026739." },
+    { icon: "🗑️", label: "Commit gone", note: "39c3fdd is off the branch." },
+    { icon: "📄", label: "Files kept", note: "Edits sit unstaged in your working directory — re-commit them elsewhere." },
+    { icon: "💣", label: "--hard", note: "git reset --hard 0026739 — the file changes are gone too." }
+  ]}
+/>
+
+<Callout type="tip">
+Reset too far? `git reflog` still has the hash for a while.
+</Callout>
+
+## revert — undo by adding
+
+Same goal, opposite mechanic: `revert` doesn't erase, it appends.
+
+<CodeBlock lang="bash" title="revert">{`git revert 51494a6   # new commit reversing 51494a6 — Git prompts for a message`}</CodeBlock>
+
+<GitGraph
+  caption="git revert 51494a6 creates a new commit whose content is the reverse of 51494a6."
+  commits={[
+    { id: "r1", label: "commit 1", lane: 0, note: "History as it stands." },
+    { id: "r2", label: "51494a6", lane: 0, parents: ["r1"], note: "The commit you regret." },
+    { id: "r3", label: "commit 3", lane: 0, parents: ["r2"], note: "Work continued on top of it." },
+    { id: "r4", label: "Revert 51494a6", lane: 0, parents: ["r3"], note: "A brand new commit that reverses 51494a6." }
+  ]}
+/>
+
+| | `git reset` | `git revert` |
+| --- | --- | --- |
+| Mechanism | Moves the branch pointer backwards | Adds a new, opposite commit |
+| Old commits | Eliminated | Still there |
+| Commit message | None | You're prompted for one |
+| History | Rewritten | Preserved |
+
+## Which one should I use?
+
+<Steps
+  caption="The deciding factor is whether anyone else already has those commits."
+  items={[
+    { icon: "👥", label: "Team has 1-2-3", note: "Your teammates already pulled commits 1, 2, 3." },
+    { icon: "🧨", label: "You reset", note: "You reset away commits they already have on their machines." },
+    { icon: "😖", label: "BAD", note: "You altered history they already have — this makes their lives harder." },
+    { icon: "🔁", label: "Try again: revert", note: "Reverse the same commits by ADDING a new commit to the chain." },
+    { icon: "🤝", label: "They merge it", note: "The 'undo' commit merges in without issue — history was never altered." },
+    { icon: "🤫", label: "Never shared?", note: "Then reset freely — and no one will ever know." }
+  ]}
+/>
+
+## In 30 seconds
+
+<Diagram caption="Name the mistake, get the command." chart={`
+flowchart TD
+  A{"Undo what?"} -- "just looking" --> B["git checkout hash"]
+  A -- "file edits" --> C["git restore file"]
+  A -- "staged file" --> D["restore --staged"]
+  A -- "private commits" --> E["git reset"]
+  A -- "commits + changes" --> F["reset --hard"]
+  A -- "shared commits" --> G["git revert"]
+`} />
+
+- **restore** = files. **reset** = the branch pointer. **revert** = a new commit.
