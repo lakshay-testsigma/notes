@@ -1,0 +1,156 @@
+---
+title: "What is Git?"
+domain: "git"
+summary: "Version control, replayed — save points, time travel, branches, merges, and why GitHub is not Git."
+tags: ["git", "version-control", "github", "fundamentals"]
+difficulty: "beginner"
+updated: "2026-07-27"
+icon: "🧭"
+order: 1
+---
+
+<Analogy>
+Git is a save file for your project.
+</Analogy>
+
+<Steps
+  caption="Life without Git is a boss fight with no save point."
+  items={[
+    { icon: "🎮", label: "Play", note: "You're working on the project." },
+    { icon: "💾", label: "Save", note: "Save the game — a checkpoint, in case you die soon." },
+    { icon: "⚔️", label: "Hard fight", note: "This is going to be a difficult one." },
+    { icon: "💀", label: "Die", note: "ughhhhh — you died." },
+    { icon: "↩️", label: "Load save", note: "Thank heavens you saved. Revert and try again." }
+  ]}
+/>
+
+<TLDR>
+- **Version control** = software that tracks and manages changes to files over time.
+- Git = the world's most popular one. Subversion, CVS, Mercurial do the same job differently.
+- Every save is a **checkpoint**; you can branch off an old one and merge branches back.
+- Built by **Linus Torvalds**, April 2005 — existing tools were slow, closed-source, paid.
+- **Git ≠ GitHub.** Git is local software; GitHub just hosts Git repos online.
+</TLDR>
+
+## What Git gives you
+
+<Steps
+  linked={false}
+  caption="Six powers. Everything else in Git is a variation on these."
+  items={[
+    { icon: "📄", label: "Track", note: "Changes across multiple files." },
+    { icon: "⚖️", label: "Compare", note: "Any two versions of the project." },
+    { icon: "⏪", label: "Time travel", note: "Go back to an old version." },
+    { icon: "🧹", label: "Revert", note: "Undo — return to a previous version." },
+    { icon: "🤝", label: "Collaborate", note: "Share changes with other people." },
+    { icon: "🔀", label: "Combine", note: "Merge separate lines of work." }
+  ]}
+/>
+
+## Replay a project's history
+
+Each dot is a checkpoint you chose to save. Step through it.
+
+<GitGraph
+  caption="Dashed = work started off an older checkpoint. Hollow dot = two lines combined."
+  commits={[
+    { id: "c1", label: "Initialize Project", lane: 0, note: "New project → first checkpoint." },
+    { id: "c2", label: "Add Top Navbar", lane: 0, parents: ["c1"], note: "Work on the navbar → checkpoint." },
+    { id: "c3", label: "Add First Row", lane: 0, parents: ["c2"], note: "Add some content → checkpoint." },
+    { id: "c4", label: "Finish Bottom Row", lane: 0, parents: ["c3"], note: "Add more content → checkpoint." },
+    { id: "c5", label: "Add Dark Theme", lane: 0, parents: ["c4"], note: "Change the theming → checkpoint." },
+    { id: "c6", label: "Update Navbar", lane: 0, parents: ["c5"], note: "Alter the navbar → checkpoint. Boss: “the colors are bad!” No problem." },
+    { id: "c7", label: "Add Third Row", lane: 1, parents: ["c4"], note: "Go back — and start new work off that old checkpoint." },
+    { id: "c8", label: "Add Footer", lane: 1, parents: ["c7"], note: "Keep building on that older line." },
+    { id: "c9", label: "Combination", lane: 0, parents: ["c6", "c8"], note: "Combine both lines into one checkpoint." }
+  ]}
+/>
+
+| Move | What happens |
+| ---- | ------------ |
+| **Checkpoint** | Freeze the project as it is, with a label |
+| **Time travel** | Jump back to any earlier checkpoint |
+| **Branch → merge** | Build off an old checkpoint, then combine the lines |
+
+<Callout type="info">
+The real names, coming up next: checkpoint = **commit**, line of work =
+**branch**, combining = **merge**.
+</Callout>
+
+## Git won
+
+<Chart
+  color="var(--domain, var(--chart-2))"
+  valueLabel="% of respondents"
+  caption="Stack Overflow 2018 Developer Survey — Git 87%, next best 16%. Multi-select, so the bars don't sum to 100."
+  data={[
+    { label: "Git", value: 87.2 },
+    { label: "SVN", value: 16.1 },
+    { label: "TFVC", value: 10.9 },
+    { label: "Zip files", value: 7.9 },
+    { label: "Mercurial", value: 3.6 },
+  ]}
+/>
+
+For a few years afterwards the survey didn't even bother asking — Git was that dominant.
+
+## Where it came from
+
+<Diagram caption="Torvalds wanted a VCS that was fast AND free — the rest were slow, closed-source, usually paid." chart={`
+flowchart LR
+  A["2005<br/>frustrated"] --> B["Apr 3<br/>writes Git"] --> C["+2 months<br/>first release"] --> D["2020<br/>90% use it daily"]
+`} />
+
+Linus Torvalds — creator of Linux — called it "the stupid content tracker".
+The official source gives the name four meanings, by mood:
+
+| Mood | "Git" = |
+| ---- | ------- |
+| Neutral | Random pronounceable 3 letters, unused by any UNIX command |
+| Self-deprecating | "stupid, contemptible, despicable — simple" |
+| It works | "global information tracker" |
+| It breaks | "g#ddamn idiotic truckload of sh\*t" |
+
+## Git ≠ GitHub
+
+<Steps
+  caption="Git works fully offline. GitHub is the optional place you push it to."
+  items={[
+    { icon: "💻", label: "Your machine", note: "Full history, local. No account, no internet." },
+    { icon: "⬆️", label: "Push", note: "Upload that history to share it." },
+    { icon: "☁️", label: "GitHub", note: "A service that hosts Git repos. Account required." },
+    { icon: "👥", label: "Others clone", note: "Teammates get their own full copy and push back." }
+  ]}
+/>
+
+| | **Git** | **GitHub** |
+| --- | --- | --- |
+| What | Version control software | Cloud host for Git repos |
+| Runs | Your machine | Browser / cloud |
+| Account | No | Yes |
+| Internet | No | Yes |
+| For | Tracking & combining changes | Sharing & collaborating |
+
+<Callout type="tip">
+You can use Git forever without touching GitHub. Not the other way round.
+</Callout>
+
+## Who uses it
+
+| Who | For |
+| --- | --- |
+| 👩‍💻 **Engineers** | Google, Facebook, tiny startups — a must-have |
+| 🎨 **Tech-adjacent** | Designers collaborating with dev coworkers |
+| 🏛️ **Governments** | DC City Council publishes laws on Git + GitHub; citizens fix typos |
+| 🔬 **Scientists** | Code and data sets, peer-reviewed |
+| ✍️ **Writers** | Novels, screenplays, collaborative textbooks |
+| 🎼 **Anyone** | Diaries, PhD theses, Photoshop files — one composer writes symphonies |
+
+## In 30 seconds
+
+<Diagram caption="The whole loop you just replayed." chart={`
+flowchart LR
+  A[work] --> B[checkpoint] --> C{happy?}
+  C -- no --> D[time travel] --> E[branch] --> F[merge] --> B
+  C -- yes --> G[push to GitHub]
+`} />
