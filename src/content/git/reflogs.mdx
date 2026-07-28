@@ -1,0 +1,129 @@
+---
+title: "Reflogs"
+domain: "git"
+summary: "Git's private diary of every move your refs made — a safety net that reaches commits git log has forgotten."
+tags: ["git", "reflog", "recovery", "undoing", "history"]
+difficulty: "advanced"
+updated: "2026-07-28"
+icon: "🧾"
+order: 17
+---
+
+<Analogy>
+The reflog is your repo's CCTV. It doesn't store the project — it stores where
+every pointer has been.
+</Analogy>
+
+<TLDR>
+- Git keeps a record of **when branch tips and other references were updated** — view and update them with `git reflog`.
+- Each entry is addressable as `name@{qualifier}` — `HEAD@{2}`, `main@{yesterday}`.
+- Pass those refs to other commands: `checkout`, `reset`, `merge`, `diff`.
+- **Local only, and expires.**
+</TLDR>
+
+## Every move is logged
+
+Four actions on one repo. The HEAD reflog records **where HEAD landed**, not what changed.
+
+<Diagram caption="Before the moves: main A→D, feature E→F, HEAD on feature." chart={`
+flowchart LR
+  A --> B --> C --> D
+  B --> E --> F
+  M["main"] -.-> D
+  FT["feature"] -.-> F
+  HD["HEAD"] -.-> FT
+`} />
+
+<Steps
+  caption="One entry per move — commits and checkouts both count."
+  items={[
+    { icon: "✍️", label: "Commit G", note: "G lands on feature — “Commit G — new commit”." },
+    { icon: "✍️", label: "Commit H", note: "H lands on feature — “Commit H — new commit”." },
+    { icon: "🔀", label: "Switch main", note: "“Commit D — switched to main from feature”." },
+    { icon: "↩️", label: "Switch back", note: "“Commit H — switched to feature from main”." }
+  ]}
+/>
+
+Git's actual wording is terser: `checkout: moving from feature to main`.
+
+## What it actually prints
+
+<CodeBlock lang="text" title="git reflog — a freshly cloned React">{`HEAD@{0}: commit: fix some bug
+HEAD@{1}: checkout: moving from main to bugfix
+HEAD@{2}: commit: another commit yay
+HEAD@{3}: commit: add some feature
+...
+HEAD@{21}: clone: from https://github.com/facebook/react.git`}</CodeBlock>
+
+Newest first — the last line is how this repo was born.
+
+## The command
+
+<CodeBlock lang="bash" title="Reading a reflog">{`git reflog             # shorthand
+git reflog show HEAD   # the same thing spelled out; HEAD is the default ref
+git reflog show main   # the log for the tip of the main branch`}</CodeBlock>
+
+| Subcommand | Does |
+| --- | --- |
+| `show` | Print a ref's log — **the default, and the only one commonly used** |
+| `expire` | Prune old entries |
+| `delete` | Remove a single entry |
+| `exists` | Test whether a ref has a reflog |
+
+## Reflog references
+
+<Diagram caption="name@{qualifier} resolves to wherever that ref pointed then — hand the result to any command that takes a commit." chart={`
+flowchart LR
+  N["name<br/>HEAD, main"] --> R["ref"]
+  Q["qualifier<br/>0, 2, yesterday"] --> R
+  R --> C["a commit"]
+`} />
+
+Every entry carries a **timestamp**, so the qualifier can be a count *or* a time.
+
+| Qualifier | Means |
+| --- | --- |
+| `@{0}` | The most recent entry — where the ref points now |
+| `@{2}` | Where it pointed two moves ago |
+| `1.day.ago`, `3.minutes.ago` | Relative time |
+| `yesterday` | Plain-English date |
+| `Fri, 12 Feb 2021 14:06:21 -0800` | An exact timestamp |
+
+<CodeBlock lang="bash" title="Time-qualified refs, passed to other commands">{`git reflog master@{one.week.ago}    # master's log as of a week ago
+git checkout bugfix@{2.days.ago}    # check out where bugfix pointed then
+git diff main@{yesterday} main@{0}  # what changed on main since yesterday`}</CodeBlock>
+
+## Limitations
+
+<Steps
+  linked={false}
+  caption="Two reasons the reflog is a safety net, not a backup."
+  items={[
+    { icon: "🏠", label: "Local only", note: "Git logs your local activity. Nothing is shared with collaborators." },
+    { icon: "⏳", label: "Expires", note: "Git cleans out old entries after around 90 days — configurable." }
+  ]}
+/>
+
+## Reflogs rescue
+
+Sometimes a commit seems lost and no longer appears in `git log` — the reflog still has it.
+
+<CodeBlock lang="bash" title="Recovering a commit git log forgot">{`git reflog
+# HEAD@{3}: commit: add some feature   <- the one you want
+
+git checkout HEAD@{3}          # go look at it (detached HEAD)
+git branch rescue HEAD@{3}     # or keep it: give it a branch
+git reset --hard HEAD@{3}      # or move the current branch back to it (discards uncommitted work)`}</CodeBlock>
+
+<Callout type="tip">
+The ~90-day clock covers entries Git can still reach. Entries for orphaned
+commits go sooner — `gc.reflogExpireUnreachable` defaults to 30 days.
+</Callout>
+
+## In 30 seconds
+
+<Diagram caption="Where reflog fits: git log shows history, reflog shows your moves through it." chart={`
+flowchart TD
+  A{"commit<br/>missing?"} -- no --> E["git log"]
+  A -- yes --> B["git reflog"] --> C["reflog ref"] --> D["checkout / reset / merge"]
+`} />
