@@ -1,0 +1,97 @@
+---
+title: "Aliases"
+domain: "git"
+summary: "Teach Git your own shorthand — one [alias] section in the global config turns git commit into git ci, in every repo."
+tags: ["git", "aliases", "config", "workflow", "productivity"]
+difficulty: "beginner"
+updated: "2026-07-28"
+icon: "⚡"
+order: 18
+---
+
+<Analogy>
+An alias is a keyboard shortcut for Git — you name it, Git types the rest.
+</Analogy>
+
+<TLDR>
+- The **global config** lives at `~/.gitconfig` **or** `~/.config/git/config`.
+- Anything changed there applies **across all your Git repos**.
+- Edit the file by hand, or set the same variables **from the command line**.
+- An `[alias]` section maps your shorthand to a real command: `s = status`.
+- Aliases go from tiny (`ci` → `commit`) to a whole custom command (`lg` → a formatted log).
+</TLDR>
+
+## Where the global config lives
+
+<Diagram caption="Two possible paths, one global file — and it reaches every repo on the machine." chart={`
+flowchart LR
+  A["~/.gitconfig"] --> C["global config"]
+  B["~/.config/git/config"] --> C
+  C --> D["every repo"]
+`} />
+
+<CodeBlock lang="bash" title="Open it">{`git config --global --edit   # opens the global config in your editor
+cat ~/.gitconfig             # or just read it`}</CodeBlock>
+
+## Two ways to change it
+
+<Steps
+  linked={false}
+  caption="Same destination — the config file is the source of truth either way."
+  items={[
+    { icon: "📝", label: "Edit file", note: "Open ~/.gitconfig and type the section yourself." },
+    { icon: "⌨️", label: "Command line", note: "git config --global writes those same lines for you." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="Command-line form">{`# each of these writes into the [alias] section of your global config
+git config --global alias.s status
+git config --global alias.l log
+git config --global alias.ci commit`}</CodeBlock>
+
+<CodeBlock lang="ini" title="~/.gitconfig — the same thing, typed by hand">{`[alias]
+    s = status
+    l = log
+    ci = commit   # old muscle memory — "check in", from SVN and CVS`}</CodeBlock>
+
+## What happens when you type `git s`
+
+<Steps
+  caption="Git has no s command — so it goes looking in your config."
+  items={[
+    { icon: "⌨️", label: "You type", note: "git s" },
+    { icon: "❓", label: "Not built in", note: "Git has no command called s." },
+    { icon: "📖", label: "Read config", note: "It checks the [alias] section of the global config." },
+    { icon: "🔁", label: "Expand", note: "s = status → the command becomes git status." },
+    { icon: "✅", label: "Runs", note: "Identical output, five fewer keystrokes." }
+  ]}
+/>
+
+## The payoff case — `git lg`
+
+<CodeBlock lang="bash" title="When the real command is unreadable">{`# quotes required — the value contains spaces and flags
+git config --global alias.lg "log --graph --decorate --oneline --all"`}</CodeBlock>
+
+<CodeBlock lang="text" title="git lg">{`* 9f3a1c2 (HEAD -> master, origin/master) Add footer
+| * 4b7d0e1 (feature) Style the navbar
+|/
+* 21d80a5 Add number to log`}</CodeBlock>
+
+<Callout type="warning">
+An alias can't shadow a built-in — `alias.status = log` is silently ignored.
+</Callout>
+
+<Callout type="tip">
+Prefix the value with `!` to run a **shell** command instead of a Git one.
+</Callout>
+
+## In 30 seconds
+
+<Diagram caption="Write it once, type it forever." chart={`
+flowchart LR
+  A["git config --global"] --> B["[alias]<br/>s = status"] --> C["git s"] --> D["git status"]
+`} />
+
+<Callout type="tip">
+Start with the three you type twenty times a day. Add more only when your fingers complain.
+</Callout>
