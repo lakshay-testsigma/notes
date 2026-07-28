@@ -1,0 +1,167 @@
+---
+title: "Git behind the scenes"
+domain: "git"
+summary: "Crack open .git — config, refs, HEAD, index, objects — and watch SHA-1 turn your files into blobs, trees and commits."
+tags: ["git", "internals", "sha-1", "objects", "plumbing"]
+difficulty: "advanced"
+updated: "2026-07-28"
+icon: "🔬"
+order: 16
+---
+
+<Analogy>
+Git is a coat check for content: hand it any bytes, get a 40-character ticket
+back. The ticket is the only way in — and the bytes decide the ticket.
+</Analogy>
+
+<Steps
+  linked={false}
+  caption="Inside .git. There's more, but this is the juicy stuff."
+  items={[
+    { icon: "📦", label: "objects", note: "Every file backup, every commit, and more." },
+    { icon: "⚙️", label: "config", note: "Per-repo settings — same knobs as your global name/email." },
+    { icon: "📍", label: "HEAD", note: "Text file: “ref: refs/heads/master”. Detached HEAD → a bare commit hash." },
+    { icon: "🗂️", label: "index", note: "Binary list of tracked files: names, metadata, blob hash — never contents." },
+    { icon: "🔖", label: "refs", note: "heads/: one file per branch, holding its tip hash. tags/: one per tag." }
+  ]}
+/>
+
+<TLDR>
+- Git is a **key-value store**: give it content, get a **SHA-1** key back.
+- Four object types: **commit**, **tree**, **blob**, **annotated tag**.
+- A commit points at a **tree**, trees point at **blobs** and other trees.
+- Branches and tags are just **files holding a hash** (a commit, or for annotated tags a tag object); HEAD is a file holding a branch name.
+- Change one byte → new hash → new blob → new tree → new commit.
+</TLDR>
+
+## Read them yourself
+
+<CodeBlock lang="bash" title="Peek inside">{`cat .git/HEAD                 # ref: refs/heads/master
+cat .git/refs/heads/master    # 40 hex digits — the tip commit
+ls  .git/refs/tags            # one file per tag
+git config --local user.email "me@work.com"   # this repo only → .git/config`}</CodeBlock>
+
+<Callout type="info">
+You'll often see these called "encrypted" — they're zlib-**compressed**, not encrypted. Unreadable in a text editor, but not secret.
+</Callout>
+
+## 4 types of Git objects
+
+<Steps
+  linked={false}
+  caption="Everything in .git/objects is one of these four."
+  items={[
+    { icon: "🧊", label: "blob", note: "Binary Large OBject — the contents of one file." },
+    { icon: "🌳", label: "tree", note: "The contents of one directory." },
+    { icon: "🟢", label: "commit", note: "A tree plus the context that produced it." },
+    { icon: "🏷️", label: "annotated tag", note: "A named pointer with its own metadata." }
+  ]}
+/>
+
+## TIME OUT — we need to talk about hashing
+
+<Diagram caption="A hashing function maps input of any size to a fixed-size output." chart={`
+flowchart LR
+  A["I LOVE CHICKENS"] -- "hash" --> B["d70ff0ab…"]
+  C["LOL"] -- "hash" --> D["07123e1f…"]
+`} />
+
+<Steps
+  linked={false}
+  caption="Four properties that make a hash function cryptographic."
+  items={[
+    { icon: "➡️", label: "One-way", note: "Infeasible to invert — you can't get the input back." },
+    { icon: "💥", label: "Avalanche", note: "Small change in input yields a large change in output." },
+    { icon: "🎯", label: "Deterministic", note: "Same input always yields the same output." },
+    { icon: "🚫", label: "Collision-resistant", note: "Unlikely to find 2 inputs with the same output." }
+  ]}
+/>
+
+<Callout type="info">
+Git uses **SHA-1** — always a 40-digit hexadecimal number. Those commit hashes
+you've seen a million times *are* SHA-1 output — and it hashes files, directories
+and commits alike. (Git is set to move off SHA-1 eventually.)
+</Callout>
+
+## Git is a key-value database
+
+<Steps
+  caption="The keys are SHA-1 checksums — nothing else identifies your data."
+  items={[
+    { icon: "📥", label: "Store hello", note: "Git returns key ce013625…" },
+    { icon: "📥", label: "Store goodbye", note: "Git returns key dd7e1c6f…" },
+    { icon: "📥", label: "Store chicken", note: "Git returns key 4768c088…" },
+    { icon: "🔎", label: "Ask by key", note: "“Hello Git, what's stored under dd7e1c6f…?”" },
+    { icon: "📤", label: "Get value", note: "Git hands back 'goodbye'. Only the key was needed." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="Store and retrieve, for real">{`echo 'hello' | git hash-object --stdin -w
+# ce013625030ba8dba906f756967f9e9ca394464a
+
+git cat-file -p ce013625030ba8dba906f756967f9e9ca394464a
+# hello`}</CodeBlock>
+
+| Command / flag | Does |
+| --- | --- |
+| `git hash-object <file>` | Prints the key the file **would** get. Stores nothing |
+| `--stdin` | Hash piped input instead of a file (`echo` just repeats text into the pipe) |
+| `-w` | Actually **write** the object — then look in `.git/objects` |
+| `git cat-file -p <hash>` | Pretty-print the object, formatted by its type |
+
+## What each object holds
+
+| Object | Stores | Doesn't store |
+| --- | --- | --- |
+| **blob** | The contents of a file | Filenames, or anything else |
+| **tree** | Per entry: mode, type, SHA-1, filename | File contents |
+| **commit** | tree, parent(s), author, committer, message | Files directly |
+
+## Trees mirror your folders
+
+<Diagram caption="Trees point at blobs and at other trees — the directory, rebuilt from hashes." chart={`
+flowchart LR
+  T["tree c38719da"] --> A["blob index.html"]
+  T --> B["blob main.js"]
+  T --> S["tree styles"]
+  S --> C["blob app.css"]
+  S --> D["blob nav.css"]
+`} />
+
+<CodeBlock lang="bash" title="Print the tree at the tip of master">{`git cat-file -p master^{tree}
+# master^{tree} = the tree object pointed to by master's tip commit`}</CodeBlock>
+
+## Commits chain by parent
+
+<GitGraph
+  caption="git commit → new commit: parent = HEAD, tree = the index."
+  commits={[
+    { id: "c1", label: "initial commit", lane: 0, note: "987fac676… — tree 647ffea2…, no parent, author Wolfgang." },
+    { id: "c2", label: "fix typo", lane: 0, parents: ["c1"], note: "236ff654… — tree 7df7df123f…, parent 987fac676…." },
+    { id: "c3", label: "add banner", lane: 0, parents: ["c2"], note: "171615141d… — tree a912dda2…, parent 236ff654…." }
+  ]}
+/>
+
+## Edit one file, and the ripple goes up
+
+<Steps
+  caption="app.js gets 'LOTS OF NEW CODE!' — watch the hashes change."
+  items={[
+    { icon: "✏️", label: "Edit app.js", note: "Different bytes in the working directory." },
+    { icon: "🧊", label: "New blob", note: "3821ff91… becomes 4451aab… — content decides the hash." },
+    { icon: "🌳", label: "New tree", note: "The tree above it now points at the new blob." },
+    { icon: "🟢", label: "New commit", note: "New tree hash, old commit as parent." }
+  ]}
+/>
+
+<Callout type="tip">
+The old objects stay put — which is why time travel works.
+</Callout>
+
+## In 30 seconds
+
+<Diagram caption="One text file at the top, content-addressed objects all the way down." chart={`
+flowchart LR
+  H["HEAD"] --> R["refs/heads/master"] --> C["commit"] --> T["tree"] --> B["blob"]
+  I["index"] -. "next commit's tree" .-> C
+`} />
