@@ -1,0 +1,115 @@
+---
+title: "Tags"
+domain: "git"
+summary: "Labels that never move — mark a commit as v3.2.1, lightweight or annotated, and remember that push ignores them."
+tags: ["git", "tags", "releases", "semver", "versioning"]
+difficulty: "intermediate"
+updated: "2026-07-28"
+icon: "🏷️"
+order: 15
+---
+
+<Analogy>
+A branch is a bookmark that slides forward as you read. A tag is a sticker on one
+page — it stays on that page forever.
+</Analogy>
+
+<TLDR>
+- A tag is a **pointer to one particular commit** — a marked moment in history.
+- Think **branch reference that does NOT change**. Once created, it always refers to the same commit.
+- Mostly used to mark **version releases**: `v4.1.0`, `v4.1.1`, …
+- Two types: **lightweight** (just a label) and **annotated** (label + author, email, date, message).
+- `git push` does **not** send tags. `git push --tags` does.
+</TLDR>
+
+## Where tags sit
+
+<GitGraph
+  caption="Step through: each merge earns a tag, and it stays on that commit forever."
+  commits={[
+    { id: "m1", label: "Initial", lane: 0, note: "Ordinary work on master." },
+    { id: "f1", label: "Feature work", lane: 1, parents: ["m1"], note: "Work on a feature branch — the branch label follows it." },
+    { id: "m2", label: "Merge", lane: 0, parents: ["m1", "f1"], note: "🏷️ v3.1.0 — this commit is now marked." },
+    { id: "r1", label: "Refactor", lane: 1, parents: ["m2"], note: "Work on a refactor branch." },
+    { id: "m3", label: "Merge", lane: 0, parents: ["m2", "r1"], note: "🏷️ v3.2.0 — the next release point." },
+    { id: "b1", label: "Bugfix", lane: 1, parents: ["m3"], note: "Work on a bugfix branch." },
+    { id: "m4", label: "Merge", lane: 0, parents: ["m3", "b1"], note: "🏷️ v3.2.1 — a patch." },
+    { id: "m5", label: "More work", lane: 0, parents: ["m4"], note: "Master's label moved on. All three tags stayed exactly where they were." }
+  ]}
+/>
+
+<Callout type="info">
+Nothing forces version numbers. `hotdog`, `pickle` and `bloobertooober` are
+perfectly legal tag names — semver is a convention, not a rule.
+</Callout>
+
+## The two types
+
+| | 🪶 lightweight | 📋 annotated |
+| --- | --- | --- |
+| Stores | a name → a commit | commit + author, email, date, message |
+| Feels like | a sticky note | a commit message |
+
+## Semantic versioning
+
+A standardised way to say *how big* a release is — three numbers, separated by periods.
+
+<Diagram caption="2.4.1 — each number answers a different question." chart={`
+flowchart LR
+  A["2<br/>MAJOR"] --> B["4<br/>MINOR"] --> C["1<br/>PATCH"]
+`} />
+
+<Steps
+  caption="The release ladder: which number you bump, and what it promises users."
+  items={[
+    { icon: "🚀", label: "1.0.0", note: "Initial release — typically the first one is 1.0.0." },
+    { icon: "🩹", label: "1.0.1", note: "Patch: bug fixes only — nothing changes how the code is used." },
+    { icon: "✨", label: "1.1.0", note: "Minor: new features, still backwards compatible — no rewrites forced." },
+    { icon: "💥", label: "2.0.0", note: "Major: NOT backwards compatible. Features may be removed or substantially changed." }
+  ]}
+/>
+
+## Viewing tags
+
+<CodeBlock lang="bash" title="List and filter">{`git tag                # every tag in the current repository
+git tag -l "*beta*"    # only tags matching a wildcard pattern`}</CodeBlock>
+
+## Checking out a tag
+
+<CodeBlock lang="bash" title="See the repo as it was">{`git checkout v3.1.0    # the state of the repo at that tag`}</CodeBlock>
+
+<Callout type="warning">
+This puts you in **detached HEAD** — you're standing on a commit, not a branch.
+</Callout>
+
+## Creating tags
+
+<CodeBlock lang="bash" title="Lightweight, annotated, and older commits">{`git tag v1.0.0                    # lightweight — tags the commit HEAD references
+git tag -a v1.0.0                 # annotated — opens your editor for the message
+git tag -a v1.0.0 -m "Ship it"    # ...or pass it inline, exactly like git commit
+git tag -a v1.0.0 8a9f2c1         # tag an OLDER commit by its hash`}</CodeBlock>
+
+## Reuse, delete, share
+
+<Steps
+  caption="Reusing a name is the one place Git pushes back."
+  items={[
+    { icon: "🔁", label: "Reuse", note: "Same name on another commit → Git yells at you. Name's taken." },
+    { icon: "💪", label: "Force", note: "-f forces it through — the tag now points at the new commit." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="Managing tags">{`git tag -f v1.0.0    # move an existing tag
+git tag -d v1.0.0    # delete a tag — the commit itself is untouched
+git push --tags      # send every tag the remote doesn't already have`}</CodeBlock>
+
+## In 30 seconds
+
+<Diagram caption="Pick a commit, pick a flavour, remember to push." chart={`
+flowchart LR
+  A["pick commit"] --> B{"need metadata?"}
+  B -- no --> C["git tag"]
+  B -- yes --> D["git tag -a"]
+  C --> E["git push --tags"]
+  D --> E
+`} />
