@@ -1,0 +1,232 @@
+---
+title: "Custom slash commands"
+domain: "claude"
+summary: "A custom slash command is just a saved prompt in a Markdown file — the filename becomes the command."
+tags: ["claude-code", "slash-commands", "arguments", "specs", "automation"]
+difficulty: "intermediate"
+updated: "2026-07-30"
+icon: "🪄"
+order: 9
+---
+
+<Analogy>
+A custom slash command is a recipe card taped inside the cupboard: write the
+instructions once, cook the same dish forever with one word.
+</Analogy>
+
+<Diagram caption="The whole mechanism: a Markdown file in .claude/commands/ becomes a /command." chart={`
+flowchart LR
+  A["seed-user.md"] --> B[".claude/commands/"] --> C["/seed-user"] --> D["prompt runs"]
+`} />
+
+<TLDR>
+- Custom slash commands are **saved prompts**: Markdown files in `.claude/commands/`, invoked as `/filename`.
+- **$ARGUMENTS** + `argument-hint` make them parameterised; **allowed-tools** keeps them safe.
+- This session builds them, then ships **register, login and logout** end-to-end with them.
+</TLDR>
+
+<Steps
+  linked={false}
+  caption="Two session goals."
+  items={[
+    { icon: "🪄", label: "Slash commands", note: "Build your own /command_name helpers." },
+    { icon: "🔐", label: "Login & registration", note: "Real users can register, log in, and log out." }
+  ]}
+/>
+
+## Saved prompts, nothing more
+
+Write a prompt once, save it, and Claude Code picks it up — any repeatable workflow becomes one word.
+
+<Steps
+  caption="Life of a custom command."
+  items={[
+    { icon: "📝", label: "Write .md", note: "The prompt goes into a Markdown file." },
+    { icon: "📁", label: "Save", note: "Into .claude/commands/ — the filename IS the command name." },
+    { icon: "🔄", label: "Restart", note: "Exit Claude Code and start it again — required for discovery." },
+    { icon: "⌨️", label: "Type /", note: "seed-user.md now appears as /seed-user." },
+    { icon: "🤖", label: "Auto-runs", note: "The saved prompt executes exactly as written." }
+  ]}
+/>
+
+<Callout type="warning">
+**Restart requirement**: a new `.md` file only appears after you exit and restart Claude Code.
+</Callout>
+
+## When to make one
+
+The single best signal is **repetition**.
+
+| Command | Does | Why automate |
+| --- | --- | --- |
+| `/review` | Code review checklist on current file | Every time you write code |
+| `/commit` | Generate a git commit message | Every feature ends with a commit |
+| `/test` | Run test suite, analyse failures | Tests run after every change |
+| `/security-scan` | Scan for common vulnerabilities | Security checks repeat throughout |
+
+<Callout type="tip">If you'll type the same prompt more than twice → make it a slash command.</Callout>
+
+## Project scope vs user scope
+
+| Aspect | Project-scoped | User-scoped |
+| --- | --- | --- |
+| Location | `<project>/.claude/commands/` | `~/.claude/commands/` |
+| Available | Only that one project | Every project on your machine |
+| Best for | Project-specific workflows | General-purpose helpers |
+| Shared via git? | Yes | No |
+
+## Anatomy of the file
+
+| Section | Purpose | Example |
+| --- | --- | --- |
+| Description | Short summary shown in dropdown | "Create a single dummy user" |
+| Allowed tools | Restricts what Claude can do | `Read, Bash(python3 *)` |
+| Arguments hint | (Optional) tells the user the inputs | `<user_id> <count> <months>` |
+| Detailed instructions | The actual prompt, step by step | Read file X, generate Y, insert into Z |
+
+## Example 1 — /seed-user
+
+While building UI you need realistic users in the database to display.
+
+<CodeBlock lang="markdown" title=".claude/commands/seed-user.md">{`---
+description: Create a single dummy user in the database
+allowed-tools: Read, Bash(python3 *)
+---
+Read database.py to understand the users table, then write and
+run a Python script that generates a realistic random Indian user.
+
+Fields: name, email, password (always "123", hashed), created_at.
+
+Steps:
+1. Check whether the generated email already exists.
+2. If it does, retry until unique.
+3. Insert the user using the get_db() function.
+4. Print the inserted user's details.`}</CodeBlock>
+
+<Callout type="info">
+`allowed-tools: Bash(python3 *)` — Claude can only run Python via Bash; **not** `git`, `rm`, or anything else. A powerful safety boundary.
+</Callout>
+
+## Example 2 — /seed-expense with $ARGUMENTS
+
+| Input | Meaning | Example |
+| --- | --- | --- |
+| `user_id` | Whose expenses are these? | 2 |
+| `count` | How many expense rows | 5 |
+| `months` | Spread across the last N months | 3 |
+
+<CodeBlock lang="markdown" title="invoked as: /seed-expense 2 5 3">{`---
+description: Seed realistic dummy expenses for a specific user
+argument-hint: <user_id> <count> <months>
+allowed-tools: Read, Bash(python3 *)
+---
+User input: $ARGUMENTS
+
+Step 1 -- Extract user_id, count, months (integers).
+  If any missing: show format /seed-expense <user_id> <count> <months>
+Step 2 -- Verify the user exists; if not, abort with a clear error.
+Step 3 -- Insert count expenses across the last months months.
+  Ranges: Food 50-800 · Health 100-2000 · Travel 100-3000
+          Bills 200-5000 · Shopping 100-4000 INR
+Step 4 -- Print a summary of the inserted expenses.`}</CodeBlock>
+
+<Callout type="tip">`$ARGUMENTS` receives whatever follows the command; `argument-hint` shows inline hints while you type.</Callout>
+
+## Example 3 — /create-spec
+
+Automates the feature spec documents you previously wrote by hand.
+
+<CodeBlock lang="markdown" title=".claude/commands/create-spec.md">{`---
+description: Create a spec file for the next Spendly feature
+argument-hint: <step_number> <feature_name>
+allowed-tools: Read, Write, Bash(git *)
+---
+You are a senior developer planning a new feature. Follow CLAUDE.md.
+User input: $ARGUMENTS
+
+Step 1 -- Parse step_number, feature_title, feature_slug.
+Step 2 -- Research: CLAUDE.md, app.py, database.py, .claude/specs/.
+Step 3 -- Generate a spec: Overview, Dependencies, Routes,
+  Database Changes, Templates, Files Modified, New Files,
+  New Dependencies, Rules, Acceptance Criteria.
+Step 4 -- Save to .claude/specs/<step_number>-<feature_slug>.md
+Step 5 -- Tell the user the spec has been created.`}</CodeBlock>
+
+## Feature 1 — user registration
+
+What the generated spec contained, in one glance:
+
+| Area | Spec says |
+| --- | --- |
+| Routes | `GET /register` exists; `POST /register` new behaviour |
+| Database | No schema changes; new DB helper in `db.py` |
+| Templates | `register.html`: `method="post"`, action URL, error block |
+| Rules | No SQLAlchemy, parameterised queries, hash passwords, server-side validation |
+
+| # | Acceptance criterion | Result |
+| --- | --- | --- |
+| 1 | Visiting `/register` shows the form | Pass |
+| 2 | Valid fields → user created, redirect to login | Pass |
+| 3 | Mismatched passwords shows error | Pass |
+| 4 | Already-registered email shows error | Pass |
+| 5 | Empty fields block submission | Pass |
+| 6 | Password stored as a hash, not plain text | Pass |
+
+## Upgrading /create-spec with git guards
+
+| Guard | Reason |
+| --- | --- |
+| Refuse if working tree is dirty | Prevents mixing features' WIP |
+| Check branch-name collision | Two features could share a slug |
+| Pull `main` before branching | New branch starts from latest state |
+
+<Steps
+  caption="After the upgrade, /create-spec 03 login-and-logout also does this."
+  items={[
+    { icon: "🧹", label: "Tree clean?", note: "Confirms there is no uncommitted work first." },
+    { icon: "⬇️", label: "Pull main", note: "Switches to main and pulls the latest state." },
+    { icon: "🌱", label: "New branch", note: "Creates and checks out feature/login-and-logout." },
+    { icon: "📄", label: "Write spec", note: "Then generates the spec document as before." }
+  ]}
+/>
+
+## Feature 2 — login & logout
+
+| Where | What |
+| --- | --- |
+| `app.py` | `POST /login` validates credentials, sets `session['user_id']` |
+| `app.py` | `GET /logout` clears session |
+| `login.html` | Method/action attributes, error message block |
+| `base.html` | Navbar shows Sign Out when logged in |
+
+<Steps
+  caption="The iterative fix — the spec missed one case."
+  items={[
+    { icon: "🧪", label: "Gap found", note: "Logged-in users could still open /login and /register." },
+    { icon: "💬", label: "Report back", note: "“I can access /login even when logged in. This should not happen.”" },
+    { icon: "🔧", label: "Guards added", note: "Claude adds redirect guards to both routes." }
+  ]}
+/>
+
+<Callout type="info">
+Even with great automation, **specs need careful review**. Iteration is normal and healthy.
+</Callout>
+
+## Best practices
+
+| Rule | Detail |
+| --- | --- |
+| Filename = command name | And restart Claude Code after creating one |
+| Be very explicit | Step-by-step instructions in the file |
+| Restrict with `allowed-tools` | Commands stay safe by construction |
+| `$ARGUMENTS` + `argument-hint` | Flexible, parameterised commands |
+| `/create-spec` first | The entry point to every new feature |
+| Review specs and plans | Always, before implementation |
+| Branch per feature | PR it, merge, then delete the branch |
+
+## In 30 seconds
+
+- A custom slash command = **a saved prompt**: Markdown in `.claude/commands/`, filename becomes `/name`, restart to discover.
+- Two scopes: **project** (shared via git) vs **user** (`~/.claude/commands/`, every project).
+- Four parts: description, `allowed-tools`, `argument-hint`, detailed instructions — `$ARGUMENTS` carries the inputs.
+- Workflow: `/create-spec` (with git guards) → review spec → implement → test → feed gaps back.
