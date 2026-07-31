@@ -1,0 +1,239 @@
+---
+title: "Hooks"
+domain: "claude"
+summary: "CLAUDE.md persuades the LLM ~98% of the time; hooks are deterministic scripts that catch the other 2% — every time."
+tags: ["claude-code", "hooks", "harness", "settings-json", "automation"]
+difficulty: "advanced"
+updated: "2026-07-30"
+icon: "🪝"
+order: 14
+---
+
+<Analogy>
+The LLM is a powerful horse, the harness the straps — hooks are your hands on the reins.
+</Analogy>
+
+<TLDR>
+- **Hooks** = your scripts that the **harness auto-runs** at session **lifecycle events**.
+- They fix the **98/2 problem**: CLAUDE.md instructions get forgotten ~2% of the time; hooks never do.
+- Every hook = **event + matcher + action**; `sys.exit(2)` cancels the tool call.
+</TLDR>
+
+<Steps
+  caption="This chapter in three stages."
+  items={[
+    { icon: "🧠", label: "Concept", note: "What a harness is, why hooks exist." },
+    { icon: "🔧", label: "Implementation", note: "settings.json, matchers, exit codes." },
+    { icon: "💸", label: "Project", note: "Two real hooks added to Spendly." }
+  ]}
+/>
+
+## What Claude Code really is — a harness
+
+A **Claude LLM** (Opus / Sonnet / Haiku) wrapped in **tools + memory**; **agentic** = autonomous. The wrapper is a **coding harness**: software that turns a raw LLM into a reliable engineering system.
+
+<Diagram caption="Agentic: you give a goal, it pursues it with whatever tools, and talks back only when it needs you." chart={`
+flowchart LR
+  A[goal in] --> B[Claude LLM] --> C[tools + memory] --> D[pings you]
+`} />
+
+| LLM limitation | Meaning |
+| --- | --- |
+| Unpredictable / non-deterministic | Same input may produce different output |
+| Stateless | Forgets past interactions; no built-in memory |
+| Disconnected from real world | No built-in ability to act |
+| Unable to act safely alone | May produce unsafe outputs if used raw |
+
+| Harness responsibility | In practice |
+| --- | --- |
+| Read your filesystem | Supplies full project context to the LLM |
+| Show output + ask permission | Terminal display; every approve / reject prompt |
+| Manage history + context window | Sessions on your machine; `/compact`, `/clear` |
+| Send API requests + parse tool calls | The LLM lives on Anthropic's servers |
+| Memory management | `CLAUDE.md`, sub-agent memory files |
+| Sub-agents + MCP / plugins | Parallel agents; external tools |
+
+| Layer | In Claude Code | What it does |
+| --- | --- | --- |
+| Brain | The LLM | Thinks: "I should read app.py" |
+| Body | The harness | Turns thoughts into real actions |
+| Mind | The combined system | The whole experience you use |
+
+## The core problem: probabilistic boss, deterministic employee
+
+Occasionally the boss says something dangerous — "delete some files", "edit `.env`", "plain f-strings instead of parameterized SQL".
+
+| Role | Played by | Behaviour |
+| --- | --- | --- |
+| Boss (probabilistic) | The LLM | Issues instructions — same input, varying output |
+| Employee (deterministic) | The harness | Faithfully executes whatever the boss says |
+
+The **98/2 problem**: on complex tasks or a nearly-full context window, the LLM overrides or forgets CLAUDE.md ~2% of the time. Hooks exist to handle that 2%.
+
+<Formula tex={"P(\\text{followed}) \\approx 0.98 \\;\\Rightarrow\\; P(\\text{risk}) \\approx 0.02 \\;\\xrightarrow{\\;\\text{hooks}\\;}\\; P(\\text{dangerous action}) = 0"} caption="Instructions persuade; hooks guarantee." />
+
+## The agent loop
+
+The internal LLM ↔ harness back-and-forth for **one task** — here, "Add a `/delete` API endpoint".
+
+<Steps
+  caption="Five cycles: model speaks, harness acts, loop ends."
+  items={[
+    { icon: "📖", label: "Read app.py", note: "Harness reads the file, sends contents back." },
+    { icon: "📖", label: "Read schema.sql", note: "Same dance for the database schema." },
+    { icon: "✍️", label: "Write route", note: "Harness writes code to disk, confirms success." },
+    { icon: "🧪", label: "Run pytest", note: "Harness runs tests, returns the output." },
+    { icon: "✅", label: "Tests pass", note: "Model returns final text — loop ends." }
+  ]}
+/>
+
+## What hooks are
+
+Custom scripts, written by you, that the harness **automatically executes** at specific lifecycle events — bind once, runs every single time, no LLM judgment involved.
+
+| Event | Fires |
+| --- | --- |
+| `SessionStart` / `SessionEnd` | Session launched / closed |
+| `UserPromptSubmit` | Each time you submit a prompt |
+| `PreToolUse` | Just **before** a tool / command runs |
+| `PostToolUse` | Just **after** a tool / command finishes |
+| `Stop` | Agent loop ends for the current prompt |
+| `SubagentStart` / `SubagentStop` | A sub-agent is spawned / finishes |
+
+## The 7 core use cases
+
+| # | Use case | Typical event |
+| --- | --- | --- |
+| 1 | Auto-formatting (consistent code) | `PostToolUse` |
+| 2 | Linting (catch bugs, bad practices) | `PostToolUse` |
+| 3 | Block dangerous commands | `PreToolUse` |
+| 4 | Protect sensitive files | `PreToolUse` |
+| 5 | Notification when Claude finishes | `Stop` |
+| 6 | Telemetry / dashboards | All events |
+| 7 | Workflow automation, session summaries | `SessionStart` |
+
+| Aspect | Formatting | Linting |
+| --- | --- | --- |
+| Concerned with | How code *looks* | What's *wrong* with code |
+| Catches | Spacing, indentation | Unused imports, typos, bare `except:` |
+| Affects behavior? | No | Yes (potentially) |
+| Tools | `black`, `prettier` | `pylint`, `flake8`, `ruff` |
+
+| Protect | Why |
+| --- | --- |
+| `.env`, `secrets.json` | Secrets, API keys, credentials |
+| `*.db` | Production data — irreversible if deleted |
+| `migrations/` | Schema history — corruption is fatal |
+
+<Callout type="info">
+`Stop` notifications free you during 5–10 min tasks; popular Claude Code telemetry dashboards on YouTube are built **entirely on hooks**; a `SessionStart` summary hands every new session full project context.
+</Callout>
+
+## Anatomy — settings.json
+
+Hooks live in `.claude/settings.json`. Every hook has exactly **3 parts**: event, matcher, action.
+
+<CodeBlock lang="json" title="event → matcher → action">{`{
+  "hooks": {
+    "PreToolUse": [{
+      "matcher": "Bash",
+      "hooks": [{ "type": "command",
+        "command": "python3 .claude/hooks/block-dangerous.py" }]
+    }]
+  }
+}`}</CodeBlock>
+
+| Matcher | Triggers on |
+| --- | --- |
+| `"Bash"` / `"Write"` / `"Edit"` | Only that tool |
+| `"Write\|Edit"` | Write OR Edit |
+| `"*"` (or omit) | Every tool — wasteful and dangerous |
+
+## Exit codes — the language back to the harness
+
+| Exit code | Meaning | Effect |
+| --- | --- | --- |
+| `0` | All OK | Tool call proceeds normally |
+| `1` | Non-blocking error | Proceeds, but error logged |
+| `2` | **Block** | Tool call **cancelled**, error sent to the LLM |
+
+<CodeBlock lang="python" title="block-dangerous.py — the whole trick">{`import sys, json
+data = json.load(sys.stdin)                    # harness sends JSON via stdin
+command = data.get("tool_input", {}).get("command", "")
+protected = ["spendly.db", ".env", "migrations/"]
+dangerous = ["rm ", "rm -", "unlink ", "> ", "truncate "]
+for d in dangerous:
+    if d in command:
+        for p in protected:
+            if p in command:
+                print(f"BLOCKED: '{p}' is protected", file=sys.stderr)
+                sys.exit(2)                    # stop. don't run it.
+sys.exit(0)                                    # command is fine`}</CodeBlock>
+
+| Command | Dangerous? | Protected file? | Result |
+| --- | --- | --- | --- |
+| `rm spendly.db` | Yes | Yes | **BLOCKED** |
+| `rm somefile.txt` | Yes | No | Allowed |
+| `cat .env` | No | Yes | Allowed |
+| `ls -la` | No | No | Allowed |
+
+## Two real hooks for Spendly
+
+<CodeBlock lang="json" title="hook 1 — black on every edit">{`"PostToolUse": [{
+  "matcher": "Write|Edit",
+  "hooks": [{ "type": "command", "command": "black \${CLAUDE_PROJECT_DIR}" }]
+}]`}</CodeBlock>
+
+| | Hook 1 — auto-format | Hook 2 — file protection |
+| --- | --- | --- |
+| Event | `PostToolUse` | `PreToolUse` |
+| Matcher | `Write\|Edit` (not Read/Bash) | `Bash` |
+| Does | Runs `black` on the whole project | Protects `spendly.db`, `.env`, `migrations/` |
+| Needs / blocks | `pip install black` | Blocks `rm`, `unlink`, `>`, `truncate` |
+
+## Ship it: /ship-feature + the updated workflow
+
+| Step | Manual (before) | With `/ship-feature` |
+| --- | --- | --- |
+| Commit + push | `git commit -m "..."` · `git push` | Auto |
+| Create + merge PR | GitHub UI, forms, clicks | Auto via MCP |
+| Delete remote branch | Click delete | Auto |
+| Switch, pull, delete local | `checkout main` · `pull` · `branch -d` | Auto |
+
+| Stage | What happens | Manual effort |
+| --- | --- | --- |
+| 1–2. Spec + plan mode | Spec doc, detailed implementation plan | Low |
+| 3. Implementation | Claude writes the code | **None** |
+| 4–5. Test + code review | Verify feature, review changes | Low |
+| 6. Ship feature | One command does all git/GitHub work | **Zero** |
+
+Along the way, hooks silently format every change and block destructive operations.
+
+## Cheat sheet + best practices
+
+| Need to… | Event | Matcher |
+| --- | --- | --- |
+| Format / lint after edits | `PostToolUse` | `Write\|Edit` |
+| Block dangerous commands | `PreToolUse` | `Bash` |
+| Protect sensitive files | `PreToolUse` | `Bash\|Write\|Edit` |
+| Notify on completion | `Stop` | — |
+| Telemetry dashboard | All events | varies |
+| Session summary | `SessionStart` | — |
+
+<Steps
+  linked={false}
+  caption="Five best practices — safeguards, not afterthoughts."
+  items={[
+    { icon: "🏁", label: "Start early", note: "Set up hooks at project start, not as afterthoughts." },
+    { icon: "🎯", label: "Always match", note: "Never run on every tool call — and keep scripts fast." },
+    { icon: "➕", label: "Combine conditions", note: "Dangerous AND protected — not either alone." },
+    { icon: "📢", label: "Exit 2 + stderr", note: "Exit 2 blocks; anything else lets the tool through. stderr is what the LLM sees." },
+    { icon: "🧪", label: "Test with bad input", note: "Try deliberately bad commands before relying on them." }
+  ]}
+/>
+
+## In 30 seconds
+
+- Claude Code = probabilistic **LLM boss** + deterministic **harness employee**; hooks are your reins on the pair.
+- CLAUDE.md persuades (~98%); **hooks guarantee** — **event + matcher + action** in `.claude/settings.json`; **exit 2 = block**, stderr goes back to the LLM.
+- With MCP + `/ship-feature`, hooks complete a fully automated, safe, professional workflow.
