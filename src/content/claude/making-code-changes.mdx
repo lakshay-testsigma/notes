@@ -1,0 +1,217 @@
+---
+title: "Making code changes"
+domain: "claude"
+summary: "Point at the exact file with @, say what NOT to touch, commit every milestone — iteration is the workflow, not a failure."
+tags: ["claude-code", "prompting", "at-mentions", "multimodal", "git-workflow"]
+difficulty: "beginner"
+updated: "2026-07-30"
+icon: "✏️"
+order: 4
+---
+
+<Analogy>
+Prompting Claude Code is like briefing a contractor: name the exact room, hand
+over the blueprint, and say which walls must not be touched.
+</Analogy>
+
+<Diagram caption="One session on Spendly's landing page — four tasks, one commit each." chart={`
+flowchart LR
+  A([Spendly landing]) --> B[footer links]
+  B --> C[terms + privacy pages]
+  C --> D[hero from image]
+  D --> E[YouTube modal]
+`} />
+
+<TLDR>
+- Three core skills: **modify existing code**, **create new pages/routes**, **image → code**.
+- **@ mention** the exact file + say **what NOT to change** — deterministic edits.
+- **Commit at every milestone**; iterate with follow-up prompts when output misses.
+</TLDR>
+
+## The three core skills
+
+| # | Goal | What you learn |
+| --- | --- | --- |
+| 1 | Modify existing code | Edit files that already exist (footer links in `templates/base.html`) |
+| 2 | Create new files/pages | Generate new routes, templates, pages (`/terms` + `terms.html`) |
+| 3 | Multimodal | Paste a design image → Claude Code writes matching HTML/CSS |
+
+## Plan before you prompt
+
+Never type prompts live in the terminal — pre-write, refine, then paste.
+
+<Steps
+  caption="The recommended prompt workflow — refined prompts avoid typos and cover files, changes, constraints, styling, edge cases."
+  items={[
+    { icon: "🧠", label: "Plan", note: "Decide exactly what you need." },
+    { icon: "✍️", label: "Rough prompt", note: "Write it in your own words." },
+    { icon: "🤖", label: "Refine", note: "Paste into a chatbot (ChatGPT, Claude…) to polish it." },
+    { icon: "✨", label: "Polished prompt", note: "Get back a detailed version." },
+    { icon: "🗂️", label: "Save", note: "Keep all prompts in a file for reference." },
+    { icon: "📋", label: "Paste", note: "Copy the polished prompt into Claude Code." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="startup ritual, every session">{`claude                               # step 1: open Claude Code
+/rename landing page improvements    # step 2: name your session`}</CodeBlock>
+
+## Task 1 — modify existing code
+
+<CodeBlock lang="text" title="the footer-links prompt">{`Add two links to the footer in @templates/base.html:
+- "Terms and Conditions"
+- "Privacy Policy"
+Both should be plain text links, no special styling needed for now.
+Point both to "#" as placeholder hrefs since the pages don't exist yet.
+Do not modify anything else on the page.`}</CodeBlock>
+
+| Prompt part | Purpose |
+| --- | --- |
+| Add two links to the footer | Exact action and location |
+| `@templates/base.html` | @ mention → the exact file |
+| Link text names | Specifies exact link text |
+| Plain text, no styling | Prevents over-engineering |
+| Point both to `"#"` | Sets expectations — non-functional for now |
+| Do not modify anything else | Critical constraint against unintended changes |
+
+## The @ mention system
+
+Type `@` + a file path and Claude Code knows exactly which file you mean.
+
+<CodeBlock lang="text" title="@ targets in Spendly">{`@templates/base.html       -> the base HTML template
+@app.py                    -> the Flask application file
+@static/css/landing.css    -> a specific CSS file
+@templates/landing.html    -> the landing page template`}</CodeBlock>
+
+| Without @ mention | With @ mention |
+| --- | --- |
+| Guesses which file to edit | Knows exactly which file |
+| May edit the wrong file | Always edits the correct file |
+| Non-deterministic, risky in large projects | Deterministic, safe at any size |
+
+<Callout type="tip">
+Always use @ mentions when editing specific files — a good habit in small
+projects, essential as the project grows.
+</Callout>
+
+## Commit at every milestone
+
+<CodeBlock lang="bash" title="after each meaningful change">{`git add .
+git commit -m "landing: add terms and privacy links to footer"`}</CodeBlock>
+
+| # | Commit message | What changed |
+| --- | --- | --- |
+| 1 | `landing: add terms and privacy links` | Two placeholder links |
+| 2 | `landing: add terms and conditions page` | `/terms` route + template |
+| 3 | `landing: add privacy policy page` | `/privacy` route + template |
+| 4 | `landing: redesign hero section` | Hero rebuilt from mockup |
+| 5 | `landing: add youtube modal` | Modal popup with video |
+
+## Task 2 — create new pages
+
+One prompt asked for a route, a template, and a link update; Claude Code made
+all three changes.
+
+<CodeBlock lang="text" title="the terms-page prompt, condensed">{`Create a "Terms and Conditions" page for Spendly.
+1. Add a new route in @app.py: GET /terms -> renders templates/terms.html
+2. Create templates/terms.html with generic terms content for a personal
+   expense tracking app. Include: Acceptance of Terms, Use of Service,
+   User Data, Limitations of Liability, Changes to Terms.
+   Extend base.html if it exists.
+3. In @templates/landing.html, update the "Terms and Conditions"
+   footer link href from "#" to "/terms".`}</CodeBlock>
+
+<Steps
+  caption="What Claude Code did — three separate changes from one prompt."
+  items={[
+    { icon: "🛣️", label: "Route", note: "@app.route('/terms') → render_template('terms.html') in app.py." },
+    { icon: "📄", label: "Template", note: "Created templates/terms.html with complete content." },
+    { icon: "🔗", label: "Link", note: "Footer href updated from \"#\" to \"/terms\"." }
+  ]}
+/>
+
+The page looked visually poor at first — fixed with one follow-up prompt.
+
+<CodeBlock lang="text" title="the iterative fix">{`Also make sure the appearance of @templates/terms.html
+matches the website's theme.`}</CodeBlock>
+
+<Steps
+  caption="Key lesson: first output isn't always perfect. The workflow is inherently iterative."
+  items={[
+    { icon: "📋", label: "Prompt", note: "Paste the polished prompt." },
+    { icon: "⚙️", label: "Output", note: "Claude Code makes the changes." },
+    { icon: "👀", label: "Review", note: "Check the result in the browser." },
+    { icon: "🔁", label: "Follow-up", note: "One more prompt fixes what's off." },
+    { icon: "✅", label: "Improved", note: "Commit the milestone." }
+  ]}
+/>
+
+## Task 3 — image to code
+
+Claude Code's models read images too: paste a mockup, get matching HTML/CSS.
+
+<Steps
+  caption="How to use image input in the terminal."
+  items={[
+    { icon: "📸", label: "Copy image", note: "Design screenshot (Figma, designer, internet) to clipboard." },
+    { icon: "⌨️", label: "Ctrl+V", note: "Paste directly into the Claude Code terminal." },
+    { icon: "🖼️", label: "Image appears", note: "It shows up inline in the terminal." },
+    { icon: "✍️", label: "Add prompt", note: "Write your text prompt alongside the image." },
+    { icon: "↩️", label: "Enter", note: "Claude Code processes image and text together." }
+  ]}
+/>
+
+<CodeBlock lang="text" title="the hero-redesign prompt (with pasted image)">{`Modify only the hero section in @templates/landing.html
+and @static/css/landing.css to match this image exactly.
+Do not touch any other part of the page.`}</CodeBlock>
+
+| Traditional | With Claude Code |
+| --- | --- |
+| Mockup → developer hand-translates to HTML/CSS | Mockup → paste image + prompt |
+| Hours or days | Minutes |
+
+## Task 4 — interactive functionality
+
+<CodeBlock lang="text" title="the YouTube-modal prompt, condensed">{`Add a modal to @templates/landing.html that opens when the user
+clicks "See how it works".
+Requirements:
+- Opens a modal overlay with an embedded YouTube video
+  (use any placeholder YouTube URL for now)
+- Video playable inside the modal
+- Close button OR clicking outside the modal closes it
+- When the modal closes, the video must stop playing
+- No page libraries -- vanilla JS only
+- Do not modify any other part of the page.`}</CodeBlock>
+
+| Requirement | Reasoning |
+| --- | --- |
+| Placeholder YouTube URL | Build functionality first, swap URL later |
+| Playable inside modal | iframe must be sized properly |
+| Close on button click | Standard UX expectation |
+| Close on outside click | Clicking the dark overlay should close |
+| Video stops on close | Common bug — audio keeps playing |
+| Vanilla JS only | Project doesn't use React/Vue/jQuery |
+| Don't modify other parts | Prevents unintended side effects |
+
+## Common mistakes and fixes
+
+| What happened | What Claude Code did | Fix |
+| --- | --- | --- |
+| Wrong CSS filename in prompt | Created a new CSS file instead of editing | Prompt: "Merge these two CSS files" |
+| Forgot Bash Mode | Typed `git add .` in prompt mode | Claude handled it anyway |
+| Terms page wrong styling | Page didn't match website theme | Follow-up: "Match the website's theme" |
+
+## Best practices
+
+| Prompt writing | Development workflow |
+| --- | --- |
+| Be specific about files — always @ mention | Commit after every meaningful change — precise rollbacks |
+| Include constraints — say what NOT to do | Verify in the browser before committing |
+| Pre-write and refine prompts, never type live | Iterate — the AI workflow is inherently iterative |
+| Include styling requirements upfront | Learn from mistakes — bake known fixes into future prompts |
+
+## In 30 seconds
+
+- **Three skills**: edit existing, create new pages/routes, image → code.
+- **Refine prompts outside** the terminal; @ mention files; forbid side effects.
+- **`git commit` every milestone**; verify in the browser first.
+- Bad first output is normal — **one follow-up prompt** usually fixes it.
