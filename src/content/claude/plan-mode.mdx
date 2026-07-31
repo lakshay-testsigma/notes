@@ -1,0 +1,240 @@
+---
+title: "Plan mode"
+domain: "claude"
+summary: "Plan Mode only reads, never writes — Claude thinks the whole feature through before a single file changes."
+tags: ["plan-mode", "spec-driven-development", "ultraplan", "extended-thinking", "workflow"]
+difficulty: "intermediate"
+updated: "2026-07-30"
+icon: "🗺️"
+order: 8
+---
+
+<Analogy>
+Plan Mode is the architect's site visit — measure everything, touch nothing,
+leave with blueprints.
+</Analogy>
+
+<TLDR>
+- **Plan Mode** = read-only Claude: agents explore the codebase, **zero file modifications**, output is an implementation plan.
+- Activate with **Shift+Tab twice** or `/plan`; the chapter uses it to build the **Expense Tracker's database layer** spec-first.
+- Good practice: **Opus for planning → Sonnet for coding**; escalate to **Ultraplan** (cloud, always Opus) for very complex features.
+</TLDR>
+
+## The project: Expense Tracker
+
+The real build starts here — database layer first: **create tables**, **insert
+dummy/seed data**, **write Python functions in `database/db.py`**.
+
+<Steps
+  linked={false}
+  caption="What the app does — four user-facing abilities."
+  items={[
+    { icon: "👤", label: "Create account", note: "A user visits the website and signs up." },
+    { icon: "🔐", label: "Log in/out", note: "Standard session auth." },
+    { icon: "🧾", label: "Log expenses", note: "Record each expense." },
+    { icon: "📊", label: "Analyse", note: "Summaries and insights over spending." }
+  ]}
+/>
+
+## SDD in practice: the setup ritual
+
+Every feature starts the same way — fresh session, fresh code, fresh branch, then a spec.
+
+<Steps
+  caption="Four moves before any planning happens."
+  items={[
+    { icon: "✳️", label: "New session", note: "claude, then /rename database setup." },
+    { icon: "⬇️", label: "git pull", note: "git pull origin main — expect: Already up to date." },
+    { icon: "🌿", label: "Feature branch", note: "git checkout -b creates AND switches. Convention: feature/<name>." },
+    { icon: "📄", label: "Spec doc", note: "Write .claude/specs/01-database-setup.md." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="the same four moves as commands">{`claude
+/rename database setup
+git pull origin main                      # Already up to date.
+git checkout -b feature/database-setup    # create + switch`}</CodeBlock>
+
+## The spec: database setup
+
+Replace the stub in `database/db.py` with working SQLite — the data-layer
+foundation every future Spendly feature depends on.
+
+**Table A — `users`**
+
+| Column | Type | Constraints |
+| --- | --- | --- |
+| `id` | INTEGER | Primary key, autoincrement |
+| `name` | TEXT | Not null |
+| `email` | TEXT | Unique, not null |
+| `password_hash` | TEXT | Not null |
+| `created_at` | TEXT | Default `datetime('now')` |
+
+**Table B — `expenses`**
+
+| Column | Type | Constraints |
+| --- | --- | --- |
+| `id` | INTEGER | Primary key, autoincrement |
+| `user_id` | INTEGER | Foreign key → `users.id`, not null |
+| `amount` | REAL | Not null |
+| `category` | TEXT | Not null |
+| `date` | TEXT | Not null (format: YYYY-MM-DD) |
+| `description` | TEXT | Nullable |
+| `created_at` | TEXT | Default `datetime('now')` |
+
+<CodeBlock lang="python" title="the three functions the spec demands">{`def get_db():
+    """Open and return a database connection."""
+    conn = sqlite3.connect("spendly.db")
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")   # Critical!
+    return conn
+def init_db():
+    """Create tables if they don't already exist."""
+    db = get_db()
+    db.execute("CREATE TABLE IF NOT EXISTS users ( ... )")     # schema per Table A
+    db.execute("CREATE TABLE IF NOT EXISTS expenses ( ... )")  # schema per Table B
+    db.commit()
+def seed_db():
+    """Insert demo data once (prevents duplicates)."""
+    db = get_db()
+    if db.execute("SELECT COUNT(*) FROM users").fetchone()[0] > 0:
+        return                                 # exit early -- don't insert again
+    from werkzeug.security import generate_password_hash
+    db.execute("INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
+               ("Demo User", "demo@spendly.com", generate_password_hash("demo123")))
+    db.commit()`}</CodeBlock>
+
+| Rule | Meaning |
+| --- | --- |
+| No ORMs | No SQLAlchemy — write raw SQL |
+| Parameterized queries only | Never Python string formatting inside SQL |
+| Foreign keys ON | Explicitly `PRAGMA foreign_keys = ON` |
+| Amounts as `REAL` | Float, not INTEGER |
+| Werkzeug hashing | Never store plain passwords |
+| Dates `YYYY-MM-DD` | One canonical format |
+
+<CodeBlock lang="text" title="acceptance criteria — the definition of done">{`[ ] DB file created on app startup     [ ] Both tables, correct schema + constraints
+[ ] Demo user, properly hashed pwd     [ ] 8 sample expenses across categories
+[ ] Re-running seed = NO duplicates    [ ] App starts without errors
+[ ] Foreign key enforcement working    [ ] All queries use parameterized SQL`}</CodeBlock>
+
+## Plan Mode — deep dive
+
+A special operating mode: Claude Code **only reads, never writes** — a
+"thinking phase" before any coding.
+
+<Diagram caption="Agents fan out over spec + code, but the only output is a plan — writes are impossible." chart={`
+flowchart LR
+  S[spec] --> P{{Plan Mode}}
+  C[codebase] --> P
+  P --> D[detailed plan]
+  P -.-> X["writes ✗"]
+`} />
+
+<CodeBlock lang="bash" title="activate it, then prompt it">{`# Method 1: Shift+Tab (press twice)   -> "Plan Mode ON" appears
+# Method 2:
+/plan
+
+# Example prompt used in Plan Mode:
+Read .claude/specs/01-database-setup.md and the existing
+database/db.py and app.py, then generate an implementation plan.
+Save this plan to .claude/plans/01-database-setup.md`}</CodeBlock>
+
+<Steps
+  caption="Implementing the plan — you stay the gatekeeper."
+  items={[
+    { icon: "🚪", label: "Exit Plan Mode", note: "Back to normal read-write mode." },
+    { icon: "▶️", label: "Implement", note: "Tell Claude Code to implement the plan." },
+    { icon: "👀", label: "Review edits", note: "Approve or reject every change manually." },
+    { icon: "🧪", label: "Self-test", note: "Claude Code runs its own tests to verify." }
+  ]}
+/>
+
+## Good practices
+
+| Model | Speed · Cost | Best for |
+| --- | --- | --- |
+| Haiku | Fastest · low | Simple tasks, quick edits |
+| Sonnet | Balanced · medium | Most everyday features |
+| Opus | Slowest · high, strongest | Complex planning, large refactors |
+
+<Callout type="tip">
+Recommended workflow: **Opus for planning → Sonnet for coding**.
+</Callout>
+
+**Extended thinking** — normally Claude starts "talking" before it has fully
+"thought"; this adds a whiteboard phase first.
+
+<Diagram caption="Reason on a scratchpad first, answer second. Toggle via /config → thinking → true/false." chart={`
+flowchart LR
+  Q[question] --> R[["scratchpad<br/>reasoning"]] --> A[final answer]
+`} />
+
+**Effort level** — directly controls how many tokens the scratchpad phase may use.
+
+| Effort | Token budget | Use when |
+| --- | --- | --- |
+| Low | ~500–1,000 | Quick, simple planning |
+| Medium | Moderate | Most everyday features |
+| High | Large | Complex features, many files |
+| Max | Unlimited | Opus only, very complex architecture |
+
+<CodeBlock lang="bash" title="set it — or let claude decide">{`/effort low | medium | high | max
+/effort auto     # <- recommended: Claude decides automatically`}</CodeBlock>
+
+**Ultraplan** — a superior, remote version of Plan Mode.
+
+| Feature | Regular Plan Mode | Ultraplan |
+| --- | --- | --- |
+| Where it runs | Your local machine | Cloud (Anthropic's servers) |
+| Model used | Whatever you've selected | Opus 4 (always) |
+| Editing experience | Terminal output | Rich web editor |
+| Best for | Typical features | Highly complex features |
+
+<CodeBlock lang="bash" title="reach for it when regular plans disappoint">{`/ultraplan
+# OR include the word in your prompt:
+ultraplan the registration feature for this website
+# use for: unsatisfying regular plans, many-file features, deep architecture, mass refactoring`}</CodeBlock>
+
+## Git workflow: commit → push → PR → merge
+
+<GitGraph
+  caption="One feature, one branch, one PR — then the branch dies."
+  commits={[
+    { id: "m1", label: "main", lane: 0, note: "Where you pulled from." },
+    { id: "f1", label: "database setup", lane: 1, parents: ["m1"], note: "git add . && git commit -m 'create database setup'" },
+    { id: "f2", label: "push", lane: 1, parents: ["f1"], note: "git push origin feature/database-setup." },
+    { id: "mg", label: "PR merged", lane: 0, parents: ["m1", "f2"], note: "GitHub: Compare & Pull Request → Confirm merge." },
+    { id: "m2", label: "cleanup", lane: 0, parents: ["mg"], note: "checkout main → pull → git branch -D feature/database-setup." }
+  ]}
+/>
+
+## The full SDD workflow — 15 steps
+
+<Steps
+  caption="The whole chapter as one replay — session to merged PR."
+  items={[
+    { icon: "✳️", label: "New session", note: "Rename to database setup." },
+    { icon: "⬇️", label: "Pull latest", note: "git pull origin main." },
+    { icon: "🌿", label: "New branch", note: "git checkout -b feature/database-setup." },
+    { icon: "📄", label: "Write spec", note: ".claude/specs/01-database-setup.md." },
+    { icon: "🔍", label: "Review spec", note: "Read thoroughly, validate completeness." },
+    { icon: "🗺️", label: "Plan Mode", note: "Shift+Tab twice or /plan." },
+    { icon: "🧠", label: "Generate plan", note: "Prompt referencing spec and files." },
+    { icon: "✅", label: "Review plan", note: "Verify plan matches spec." },
+    { icon: "💾", label: "Save plan", note: ".claude/plans/01-database-setup.md." },
+    { icon: "🔨", label: "Implement", note: "Approve edits manually." },
+    { icon: "☑️", label: "Validate", note: "Check each acceptance criterion in the spec." },
+    { icon: "🔁", label: "Iterate", note: "Re-prompt if anything is wrong." },
+    { icon: "📦", label: "Commit", note: "git add . && git commit." },
+    { icon: "⬆️", label: "Push", note: "git push origin feature/database-setup." },
+    { icon: "🔀", label: "PR & cleanup", note: "PR → merge → main → pull → delete branch." }
+  ]}
+/>
+
+## In 30 seconds
+
+- **Spec first** — tables, functions, rules, acceptance criteria in `.claude/specs/`.
+- **Plan Mode** (Shift+Tab ×2) reads everything, writes nothing, saves a plan to `.claude/plans/`.
+- **Opus plans, Sonnet codes**; `/effort auto` for thinking budget; **Ultraplan** for the monsters.
+- Implement with manual approvals, validate against acceptance criteria, then **commit → push → PR → merge → delete branch**.
