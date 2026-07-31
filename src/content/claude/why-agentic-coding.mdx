@@ -1,0 +1,178 @@
+---
+title: "Vibe coding vs agentic coding"
+domain: "claude"
+summary: "Vibe coding makes you a passenger while AI drives blindly; agentic coding makes you the pilot with a skilled co-pilot."
+tags: ["claude-code", "agentic-coding", "vibe-coding", "ai-assisted", "workflow"]
+difficulty: "beginner"
+updated: "2026-07-30"
+icon: "🧭"
+order: 1
+---
+
+<Analogy>
+Vibe coding is riding shotgun while the AI drives blindfolded; agentic coding
+puts you in the pilot's seat with the AI as your skilled co-pilot.
+</Analogy>
+
+<TLDR>
+- **Claude Code** = an agentic coding tool from Anthropic — a partner that understands your whole codebase, not autocomplete.
+- **Vibe coding** (prompt → generate → fix-loop) is fine for MVPs, fatal when real money is on the line.
+- **Agentic coding** keeps you technical: you instruct, review, and decide — that's what this course teaches, not vibes.
+</TLDR>
+
+## What is Claude Code?
+
+An AI coding **agent** in your terminal — it follows instructions and autonomously performs complex dev tasks.
+
+<Diagram caption="One agent, the whole lifecycle — all from the terminal." chart={`
+flowchart LR
+  T([terminal]) --> CC[Claude Code]
+  CC --> U[understand codebase]
+  CC --> G[generate code]
+  CC --> D[debug]
+  CC --> R[refactor]
+  CC --> P[deploy]
+`} />
+
+<Callout type="info">
+Not just another autocomplete plugin — a full-fledged agent that understands
+context across the entire codebase.
+</Callout>
+
+## Why learn this now?
+
+<Steps
+  caption="The instructor's case for 'now is the right time' — three escalating pressures."
+  items={[
+    { icon: "⌨️", label: "Manual era", note: "Developers wrote every single line by hand." },
+    { icon: "🤖", label: "The shift", note: "With Claude Code, a developer becomes more like a product manager or technical architect." },
+    { icon: "🏢", label: "Forced adoption", note: "Companies already mandate AI tools; few professionals will work without them soon." },
+    { icon: "⚠️", label: "Fall behind", note: "Stick to tradition and competitors leveraging AI hit 10x your productivity." }
+  ]}
+/>
+
+## Vibe coding: the 3-step loop
+
+Rely on the LLM end-to-end, steering only with natural-language prompts.
+
+<Steps
+  caption="The entire methodology — a loop that runs until the site works."
+  items={[
+    { icon: "📝", label: "English prompt", note: "“Create a to-do list website for me.”" },
+    { icon: "🏭", label: "AI generates", note: "The tool returns a complete website codebase." },
+    { icon: "🔁", label: "Test, complain", note: "Find bugs → tell AI → AI fixes → repeat until it works." }
+  ]}
+/>
+
+## Where it works vs where it fails
+
+| Works well (low stakes) | Fails (high stakes) |
+| --- | --- |
+| MVPs | Scalable systems (Google-level) |
+| Exploring / prototyping ideas | Critical infrastructure software |
+| Hackathon projects | Banking & insurance software |
+| Any low-stakes project | Anything with a lot of money on the line |
+
+<Callout type="warning">
+The playlist explicitly states: **"We will NOT learn Vibe Coding."**
+</Callout>
+
+## Agentic coding: pilot, not passenger
+
+<CodeBlock lang="text" title="the key difference in one contrast">{`Vibe coding        -> you are a passenger, AI is driving blindly
+AI-assisted coding -> you are the pilot, AI is your skilled co-pilot`}</CodeBlock>
+
+<Steps
+  caption="The professional loop: deep technical understanding stays with you."
+  items={[
+    { icon: "🧑‍✈️", label: "Precise instruction", note: "Specific, well-thought-out — e.g. “refactor auth using JWT + RBAC.”" },
+    { icon: "🤖", label: "Co-pilot writes", note: "AI compiles the detailed blocks of code to spec." },
+    { icon: "✅", label: "Review", note: "You read the code, understand the architecture, decide deliberately." },
+    { icon: "🏗️", label: "Scalable system", note: "High-quality, stable, well-structured output." }
+  ]}
+/>
+
+## The project: expense tracking website
+
+One end-to-end build carries the whole playlist.
+
+| Feature | What it covers |
+| --- | --- |
+| Landing page | User registration + login |
+| User dashboard | Total spending, transaction count, top category, history |
+| Date filtering | Custom date ranges |
+| CRUD | Add, edit, delete expenses |
+| Analytics | Category-wise spending (pie/bar charts) |
+
+<Steps
+  linked={false}
+  caption="The four things the playlist teaches along the way."
+  items={[
+    { icon: "🧱", label: "Complete website", note: "End-to-end frontend + backend." },
+    { icon: "🔁", label: "Pro workflow", note: "Proper AI-assisted workflows for professional development." },
+    { icon: "🤝", label: "Parallel agents", note: "Creating and running multiple AI agents at once." },
+    { icon: "☁️", label: "Deployment", note: "Cloud deployment driven by Claude Code." }
+  ]}
+/>
+
+## Why Claude Code over other tools?
+
+| Reason | Why it matters |
+| --- | --- |
+| Best raw coding intelligence | Anthropic's Opus model handles complex features |
+| Best long-context handling | Huge context window — understands entire codebases |
+| Refactoring & architecture | Excels at redesigning existing code |
+| Agentic capabilities | Spin up multiple agents for parallel development |
+| Senior engineer behaviour | Works with deep understanding, not snippet-pasting |
+
+## Goals, audience, prerequisites
+
+| Goal | How |
+| --- | --- |
+| A flavour of AI-assisted coding | Build software with an AI partner firsthand |
+| Claude Code fundamentals | Proficiency in the tool — a skill in itself |
+| Eradicate fear | Hands-on experience beats speculation |
+
+<Callout type="tip">
+**Horror movie analogy:** the ghost is scary only while hidden. Learn
+AI-assisted coding yourself and the fear of being replaced shrinks.
+</Callout>
+
+For working professionals (developers, data scientists/analysts/engineers) and students entering the job market.
+
+| Prerequisite | Why it's needed |
+| --- | --- |
+| Python | Backend programming language |
+| Flask | Python web framework for the backend |
+| HTML & CSS (basics) | The frontend (user interface) |
+| Git & GitHub | Version control, used throughout |
+
+<Callout type="warning">
+No Git/GitHub experience → significant difficulties. Do a crash course on those
+**before** starting.
+</Callout>
+
+## The developer's role transformation
+
+You don't become useless — you move up the value chain, from "coder" to "thinker and architect" with AI as your execution engine.
+
+| | Before Claude Code | After Claude Code |
+| --- | --- | --- |
+| Role | Manual coder | Product manager / technical architect |
+| Time spent | Syntax, boilerplate, debugging | Clear instructions, review, guidance |
+| Limited by | Typing speed and memory | System-level understanding |
+| Output | Baseline | 10x productivity, better quality |
+
+## In 30 seconds
+
+<Diagram caption="Which mode of AI coding — decided by stakes, kept honest by who's flying." chart={`
+flowchart TD
+  A{"stakes?"} -- low --> B["vibe away"]
+  A -- high --> C["agentic coding"]
+  C --> D["you pilot"]
+  C --> E["AI co-pilots"]
+`} />
+
+- Claude Code = Anthropic's agentic coding tool — currently the most powerful available.
+- Vibe coding for MVPs; agentic coding for production — you keep the technical understanding.
+- Prereqs: Python, Flask, basic HTML/CSS, Git/GitHub. The right time to learn is now.
