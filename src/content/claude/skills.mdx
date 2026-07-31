@@ -1,0 +1,238 @@
+---
+title: "Skills"
+domain: "claude"
+summary: "Skills are recipe cards in Claude's drawer — folders of expertise pulled out only when the dish is ordered."
+tags: ["claude-code", "skills", "skill-md", "progressive-disclosure", "slash-commands"]
+difficulty: "intermediate"
+updated: "2026-07-30"
+icon: "🧰"
+order: 10
+---
+
+<Analogy>
+A skill is a recipe card in the chef's drawer — Claude doesn't memorize every
+dish; it pulls the card only when you order that dish.
+</Analogy>
+
+<Steps
+  linked={false}
+  caption="Not a Claude Code feature — learn skills once, use them everywhere Claude runs."
+  items={[
+    { icon: "⌨️", label: "Claude Code", note: "The CLI agent." },
+    { icon: "💬", label: "claude.ai", note: "The regular chatbot." },
+    { icon: "🤝", label: "Claude Cowork", note: "Same concept, same files." }
+  ]}
+/>
+
+<TLDR>
+- **Skills** = reusable, **file-based expertise packs** — a folder whose only required file is **SKILL.md** — turning a general-purpose agent into a specialist.
+- **Progressive disclosure** loads them **just-in-time**: only name + description sit in context; body and resources load on demand.
+- **Commands and Skills have merged** — going forward, only skills exist.
+</TLDR>
+
+## The gap: general AI vs specialized tasks
+
+Claude, ChatGPT, Gemini are strong generalists — but generality ≠ reliable, high-quality output for *your specific task type*.
+
+<Diagram caption="General reasoning handles generic tasks; specialized, repeated tasks fall into the gap." chart={`
+flowchart LR
+  A[General LLM] --> B[Generic tasks ✓]
+  A --> C{gap}
+  C --> D[Company PPTs]
+  C --> E[Brand frontend]
+  C --> F[Your conventions]
+`} />
+
+| Claude knows | Claude does NOT know |
+| --- | --- |
+| What PowerPoint is | Your company's layout |
+| How to structure slides | Which fonts your company uses |
+| Which Python library to use | Charts vs tables placement, your design guidelines |
+
+Same gap in frontend work, data analysis, documents, code review — anywhere your team has conventions.
+
+## Why detailed prompts don't fix it
+
+| Problem | Why it hurts |
+| --- | --- |
+| Remember & retype every time | Paste the same huge prompt for every repeated task |
+| Context window gets burned | A 20,000-token instruction sits in context **always** |
+| Hard to bundle resources | A prompt is just text — can't attach PDFs or scripts |
+| Can't share / version / improve | No clean collaboration on prompts |
+| Prompts don't compose | Stuffing 3 sub-tasks into one prompt confuses the LLM |
+
+## What a skill is
+
+Reusable, file-based resources — workflows, context, best practices — that load **on-demand**.
+
+| Aspect | Prompts | Skills |
+| --- | --- | --- |
+| Nature | One-off instructions | Reusable knowledge package |
+| Loading | Always in context | Just-in-time |
+| Resources | Just text | Files, scripts, templates |
+| Sharing | Personal, hard to share | Git-friendly, versionable |
+| Composition | Don't compose well | Compose like links |
+
+## The folder
+
+<CodeBlock lang="bash" title="one folder per skill — SKILL.md is the only required file">{`your-project/
+  .claude/skills/
+    ppt-generator/
+      SKILL.md        # <- REQUIRED
+      scripts/        # <- Python scripts (optional)
+      templates/      # <- slide templates (optional)
+      resources/      # <- reference docs (optional)
+    frontend-design/
+      SKILL.md
+    code-review/
+      SKILL.md`}</CodeBlock>
+
+| Folder | Purpose | Example use |
+| --- | --- | --- |
+| root | Holds `SKILL.md` — the entry point | Master instructions |
+| `scripts/` | Executable code | `validate.py`, plotting scripts |
+| `resources/` | Reference docs, loaded on demand | `xml-schema.md`, style guides |
+| `assets/` | Templates, fonts, images | Slide template `.pptx`, logos |
+
+## Anatomy of SKILL.md
+
+Two parts: YAML frontmatter (the trigger) and a Markdown body (the expertise).
+
+<CodeBlock lang="yaml" title="part 1 — frontmatter: description decides WHEN it loads">{`---
+name: docx
+description: When to trigger this skill — described in clear
+  language so Claude knows when to load it.
+---`}</CodeBlock>
+
+<CodeBlock lang="md" title="part 2 — body: steps, patterns, pitfalls, links to files">{`To plot this kind of graph, use the following script:
+[Run plot_chart.py](./scripts/plot_chart.py)`}</CodeBlock>
+
+<Callout type="info">
+When Claude reads the body and hits that link, it knows to load the script —
+that is Level 3 of progressive disclosure.
+</Callout>
+
+## Progressive disclosure — how skills load
+
+Core idea: don't present information until the moment it's needed.
+
+| Level | What loads | When |
+| --- | --- | --- |
+| 1 | YAML frontmatter of **all** skills | Always — session start |
+| 2 | Full SKILL.md body of the match | On demand — user intent matches |
+| 3 | Referenced scripts / templates | Only when the body says so |
+
+<Chart
+  data={[
+    { label: "Mega-prompt, always in context", value: 20000 },
+    { label: "10 skills at Level 1 (≈)", value: 500 }
+  ]}
+  valueLabel="tokens carried every turn"
+  caption="Ten skills cost ~10 short descriptions; massive instructions enter context only when actually needed."
+/>
+
+## Personal vs project
+
+| Type | Location | Scope + use case |
+| --- | --- | --- |
+| Personal | `~/.claude/skills/` | All projects — your coding/writing style |
+| Project | `<project>/.claude/skills/` | This project — team-shared, push to Git |
+
+## Three ways to get one
+
+<Steps
+  linked={false}
+  caption="Write it, generate it, or install it — skill-creator is the recommended path."
+  items={[
+    { icon: "✍️", label: "Manually", note: "Folder + SKILL.md yourself. Technically simple, not for beginners." },
+    { icon: "🤖", label: "skill-creator", note: "Built-in skill that asks guiding questions and drafts a polished SKILL.md. Recommended." },
+    { icon: "🌐", label: "Community", note: "Many people share skills publicly — see the warning below." }
+  ]}
+/>
+
+<Callout type="warning">
+Random community skills can have security flaws — real cases of **leaked API keys**
+exist. Safest bet: Anthropic's **official skills repository**.
+</Callout>
+
+## The 5-step recipe
+
+<Steps
+  caption="Only create skills for specialized tasks you do repeatedly."
+  items={[
+    { icon: "🎯", label: "Identify need", note: "Specialized + repeated, or don't bother." },
+    { icon: "📁", label: "Folder + SKILL.md", note: "Under .claude/skills/." },
+    { icon: "📎", label: "Support files", note: "Scripts, templates, resources — if needed." },
+    { icon: "🧪", label: "Test", note: "Run it on real prompts." },
+    { icon: "🔁", label: "Iterate", note: "Expect 4–5 iterations before it's truly usable." }
+  ]}
+/>
+
+## Every prompt problem, solved
+
+| Prompt problem | How skills fix it |
+| --- | --- |
+| Retype every time | File saved once; auto-loads when needed |
+| Context window burned | Only the description is always in context |
+| Can't bundle resources | Folder holds scripts, templates, references |
+| Can't share / version | Skills are files — push to Git, collaborate |
+| Don't compose | One skill's body can reference another |
+
+## Composition
+
+<Diagram caption="Ask 'make a PPT from this PDF' — make-ppt transitively loads all three, only when needed." chart={`
+flowchart LR
+  A[make-ppt] --> B[extract-tables] --> C[read-pdf]
+`} />
+
+## Walkthrough: the profile page
+
+<Steps
+  caption="Build without, build with, compare — the skill-creator loop end to end."
+  items={[
+    { icon: "🧱", label: "Baseline", note: "Build the profile page without a skill." },
+    { icon: "🤖", label: "skill-creator", note: "Click + → Skills → skill-creator → 'create a new skill from scratch'." },
+    { icon: "❓", label: "3 questions", note: "What will it do? When should it trigger? What does success look like?" },
+    { icon: "📋", label: "Paste", note: "Copy the draft into .claude/skills/frontend-design/SKILL.md." },
+    { icon: "🔄", label: "Restart", note: "Skills only work after restarting Claude — run claude -r." },
+    { icon: "⚖️", label: "Rebuild", note: "Same prompt, skill loaded this time. Compare." }
+  ]}
+/>
+
+| Without skill | With skill |
+| --- | --- |
+| Big standalone "Category" card | Categories merged into the Transaction table |
+| Default font choices | Slightly improved typography |
+| Larger cards | More compact, balanced layout |
+
+<CodeBlock lang="text" title="you know it fired when you see this">{`Successfully loaded skill: frontend-design
+Now let me invoke the frontend-design skill as requested
+for design guidance.`}</CodeBlock>
+
+## Skills × commands — merged
+
+Big update from Anthropic: only skills exist now. `.claude/commands/` is gone; each command becomes a skill folder with its own SKILL.md.
+
+| Behavior | Slash command | Skill |
+| --- | --- | --- |
+| Triggered by | User typing `/cmd` | Auto-invoked when relevant |
+| Discovery | Explicit | Automatic |
+
+<CodeBlock lang="yaml" title="want it to fire ONLY on explicit /call? one flag">{`---
+name: my-command-like-skill
+description: ...
+disable-model-invocation: true
+---`}</CodeBlock>
+
+<Callout type="tip">
+Type `/` in a new session — every skill is listed, `frontend-design` included,
+and explicitly invocable just like the old commands.
+</Callout>
+
+## In 30 seconds
+
+- Generalist LLMs fail at **specialized + repeated** tasks; mega-prompts don't scale.
+- A **skill** = a folder + **SKILL.md** — reusable, Git-shareable, composable expertise.
+- **Progressive disclosure** (frontmatter → body → resources) solves context burn.
+- Recipe: identify → folder + SKILL.md → support files → test → **iterate 4–5×**.
+- Commands are gone; skills auto-invoke — `disable-model-invocation: true` to opt out.
