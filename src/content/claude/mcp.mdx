@@ -1,0 +1,230 @@
+---
+title: "MCP — Model Context Protocol"
+domain: "claude"
+summary: "One open standard plugs any tool into Claude Code — no brittle custom integration code, ever."
+tags: ["mcp", "claude-code", "integrations", "tooling", "workflow"]
+difficulty: "advanced"
+updated: "2026-07-30"
+icon: "🔌"
+order: 13
+---
+
+<Analogy>
+MCP is the USB-C of AI tools — one standard port, and any device just plugs in.
+</Analogy>
+
+<Diagram caption="One universal connector between Claude Code and everything else." chart={`
+flowchart LR
+  G[GitHub] --- M{{MCP hub}}
+  F[Figma] --- M
+  D[(Database)] --- M
+  J[Jira] --- M
+  S[Slack] --- M
+  M --- C([Claude Code])
+`} />
+
+<TLDR>
+- **MCP** = an open standard by Anthropic: a **universal connector** that gives Claude Code **more tools**.
+- **stdio** transport for local servers, **http/sse** for remote — verify with **/mcp**.
+- Biggest beginner mistake: **overloading servers** — every tool description eats context. Keep the list minimal.
+</TLDR>
+
+## What is MCP?
+
+A standardized way to plug any external tool, service, or data source into an LLM — no brittle custom code.
+
+| Property | Detail |
+| --- | --- |
+| Full form | Model Context Protocol |
+| Created by | Anthropic |
+| Type | Open standard / universal connector |
+| Purpose | Connect any external tool/service to any LLM |
+| Adoption | Virtually every major AI player today |
+
+## The problem before MCP
+
+<Steps
+  caption="Life before MCP: every tool needed its own hand-rolled bridge."
+  items={[
+    { icon: "🔧", label: "Custom code", note: "A bespoke integration for every single tool." },
+    { icon: "🎲", label: "No standard", note: "Every developer wired it differently." },
+    { icon: "💥", label: "API changes", note: "Provider updates their API → your connection breaks." },
+    { icon: "🕸️", label: "Unmaintainable", note: "Fragile, repetitive, M×N integration chaos." }
+  ]}
+/>
+
+<Diagram caption="M×N bespoke adapters collapse into one protocol layer." chart={`
+flowchart LR
+  A[M LLMs] -- "M×N adapters" --> B[N tools]
+  C[M LLMs] --> P{{MCP}} --> D[N tools]
+`} />
+
+## Why MCP in Claude Code?
+
+Claude Code alone is limited to your local file system and shell. MCP breaks those limits.
+
+| Default tool | What it does |
+| --- | --- |
+| `Read` | Read files from the file system |
+| `Write` | Create new files / write into existing ones |
+| `Bash` | Execute command-line / shell commands |
+
+<Callout type="info">
+With MCP, add: **GitHub** repos/issues/PRs, **Google Drive** docs, **Jira** tickets,
+**Slack** messages, **Figma** designs, **databases** (SQLite, MySQL, PostgreSQL), AWS, Docker, Notion — and more.
+</Callout>
+
+## Integration 1 — SQLite database
+
+One server, three databases: `@executeautomation/database-server` speaks SQLite, MySQL and PostgreSQL.
+
+<CodeBlock lang="bash" title="add the database server (local → stdio)">{`claude mcp add --transport stdio sqlite -- \\
+  npx -y @executeautomation/database-server \\
+  /absolute/path/to/spendly.db`}</CodeBlock>
+
+| Transport | Use case |
+| --- | --- |
+| `stdio` | Local — process runs on your machine |
+| `http` / `sse` | Remote — server runs on a remote host |
+
+<CodeBlock lang="bash" title="verify, then just ask">{`/mcp    # SQLite server should show: Connected
+
+# example prompts — zero Python, zero SQL:
+List all tables in the Spendly database
+Describe the schema of the expenses table
+Show total spending grouped by category`}</CodeBlock>
+
+<Steps
+  linked={false}
+  caption="Why this is powerful."
+  items={[
+    { icon: "🚫", label: "No code", note: "No Python or SQL written by you." },
+    { icon: "📈", label: "Scales", note: "2-table demos and 15–20+ table real projects alike." },
+    { icon: "🗺️", label: "Schema insight", note: "Understand tables and relationships on the fly." },
+    { icon: "🔁", label: "One server", note: "Same server for SQLite, MySQL, PostgreSQL." }
+  ]}
+/>
+
+## Integration 2 — Figma
+
+Figma = where designers and PMs draw wireframes and UI components. MCP automates wireframe → working code.
+
+<CodeBlock lang="bash" title="install the figma plugin">{`claude plugin install figma@claude-plugins-official`}</CodeBlock>
+
+<Callout type="info">
+**Plugin = a package**: skills + agents + MCP servers + hooks, all rolled into one.
+This one bundles the Figma MCP server plus skills for common Figma workflows.
+</Callout>
+
+<CodeBlock lang="text" title="the coming-soon page prompt">{`I want to add an Analytics module to the Spendly expense tracker app.
+Here is the Figma design for the Coming Soon page:
+https://www.figma.com/make/...
+
+1. Convert the Figma design to a Jinja2 template (analytics.html) — match it exactly
+2. Add an "Analytics" navbar item in base.html — visible only to logged-in users
+3. Create a Flask route in app.py for /analytics — protect it for logged-in users
+4. Highlight "Analytics" as active when on that page`}</CodeBlock>
+
+<Steps
+  caption="The manual translation step is eliminated."
+  items={[
+    { icon: "🎨", label: "Designer draws", note: "Wireframe lives in Figma." },
+    { icon: "🔗", label: "Dev pastes URL", note: "One prompt with the Figma link." },
+    { icon: "🤖", label: "Claude builds", note: "Pixel-matching page, route, navbar — done." }
+  ]}
+/>
+
+## Integration 3 — GitHub
+
+Read repos, issues, PRs; create/merge PRs; push commits — the entire Git workflow, automated.
+
+<Steps
+  caption="Step 1 — create a fine-grained Personal Access Token."
+  items={[
+    { icon: "⚙️", label: "Navigate", note: "github.com → Settings → Developer Settings → Personal Access Tokens → Fine-grained." },
+    { icon: "🆕", label: "Generate", note: "Click Generate new token; set name, expiry, repo access." },
+    { icon: "🔑", label: "Permissions", note: "repo (read/write repos, PRs, issues) + workflow (Actions) + PR create/merge." },
+    { icon: "📋", label: "Copy now", note: "Copy the token immediately — it's shown once." }
+  ]}
+/>
+
+<Callout type="warning">
+Always enable **PR create + merge permissions explicitly** — forgetting this causes failures at merge time.
+</Callout>
+
+<CodeBlock lang="bash" title="step 2 — add the server (remote → http)">{`export PAT=github_pat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+claude mcp add --transport http github \\
+  https://api.githubcopilot.com/mcp \\
+  -H "Authorization: Bearer $PAT"`}</CodeBlock>
+
+| Prompt | What happens |
+| --- | --- |
+| "Which is my most starred repo?" | Lists top-starred repo with stars/forks |
+| "How many open issues? Summarize" | Groups all issues by category |
+| "Are there open PRs? Summarize them" | Lists PRs with summaries |
+| Full git workflow automation | Commit, push, PR, merge, cleanup in one shot |
+
+<CodeBlock lang="text" title="the full-automation prompt">{`Commit all changes with an appropriate conventional commit message,
+push to the current feature branch, create a pull request into main
+with a proper title and description based on the spec, merge it
+using squash merge, switch to main, pull latest, and delete the
+feature branch locally.`}</CodeBlock>
+
+## Top 10 MCP servers
+
+| # · Server | Category | Killer use case |
+| --- | --- | --- |
+| 1 · SQLite/DB | Data | Natural-language DB queries |
+| 2 · Figma | Design | Design → working code |
+| 3 · GitHub | Version control | Full Git workflow automation |
+| 4 · Context7 | Documentation | Always-current library docs |
+| 5 · Jira | Project mgmt | Read tickets → implement features |
+| 6 · Notion | Knowledge/docs | Read PRDs → scaffold features |
+| 7 · Slack | Communication | Read incidents → fix bugs |
+| 8 · AWS | Cloud/DevOps | Deploy + monitor from chat |
+| 9 · Docker | DevOps/containers | Generate/optimize Dockerfiles |
+| 10 · Your pick | — | Add your favorite! |
+
+**Context7** beats the knowledge cutoff — it pulls live, up-to-date docs for any library straight into Claude's context, so you always get the latest API syntax.
+
+<CodeBlock lang="text" title="jira · notion · slack — one prompt each">{`Read JIRA-234 and implement the feature          # no more UI ↔ editor switching
+
+Read the product requirements doc for the Analytics module in
+Notion and implement the feature in my Flask app
+
+Check #incidents for the latest production error, read the
+details, find the bug in the codebase and fix it   # full incident loop`}</CodeBlock>
+
+## Managing servers
+
+<CodeBlock lang="bash" title="add · list · reconnect · remove">{`# local (stdio)
+claude mcp add --transport stdio <name> -- <command> <args>
+# remote (http)
+claude mcp add --transport http <name> <url> -H "Authorization: Bearer $TOKEN"
+
+/mcp                            # list all servers / reconnect (inside Claude Code)
+claude mcp remove <server-name>`}</CodeBlock>
+
+<Callout type="warning">
+**Don't overload MCP servers** — the single biggest beginner mistake. Every tool's
+description auto-loads into Claude's context at the start of **every** session:
+wasted tokens, slower responses, degraded performance. Keep the list **minimal**;
+remove what you don't genuinely use.
+</Callout>
+
+## In 30 seconds
+
+<Diagram caption="Setting up any MCP server, start to finish." chart={`
+flowchart TD
+  A{"tool where?"} -- local --> B["stdio"]
+  A -- remote --> C["http + token"]
+  B --> D["/mcp: Connected?"]
+  C --> D
+  D --> E["prompt away"]
+  E --> F["prune unused"]
+`} />
+
+- Golden rules: **stdio local, http remote** · minimal permissions · verify with `/mcp` first.
+- **Minimal server count**, absolute paths for local DBs, PAT needs PR create+merge.
+- **Never** install every server you find; **never** commit your PAT/API keys to Git.
