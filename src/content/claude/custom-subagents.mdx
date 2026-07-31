@@ -1,0 +1,239 @@
+---
+title: "Custom subagents"
+domain: "claude"
+summary: "A custom subagent is just a markdown file in .claude/agents/ — and its description line decides when it wakes up."
+tags: ["claude-code", "subagents", "slash-commands", "spec-driven", "agents"]
+difficulty: "advanced"
+updated: "2026-07-30"
+icon: "🤖"
+order: 12
+---
+
+<Analogy>
+Built-in subagents are temp workers off the street; a custom subagent is an
+employee you trained on YOUR company handbook.
+</Analogy>
+
+<Diagram caption="One markdown file becomes a specialist: delegate, work in an isolated context, hand back a report." chart={`
+flowchart LR
+  M[main agent] -->|delegate| S[subagent]
+  S --> P[own prompt]
+  S --> T[own tools]
+  S -->|report| M
+`} />
+
+<TLDR>
+- A custom subagent is **just a markdown file** in `.claude/agents/` — **YAML front matter** + a **system-prompt body**.
+- The **description** field is the most important line: it controls **automatic triggering**.
+- **Slash commands orchestrate** subagents — **sequential** when one depends on another, **parallel** when independent.
+</TLDR>
+
+## Why custom? Specialization
+
+Built-ins have generic knowledge — they don't know your compliance rules or codebase patterns. A custom subagent lets you control:
+
+| Control surface | What you customize |
+| --- | --- |
+| System prompt | Your checklist, your guidelines |
+| Tools | Only what it needs (read-only, edit, bash) |
+| Skills | Hook up domain-specific skills |
+| Model | Sonnet, Opus or Haiku per task |
+| Memory | Persistent context if needed |
+
+<Callout type="tip">
+Rule of thumb: whenever you need specialization for **your** codebase or workflow,
+build a custom subagent instead of reaching for a built-in.
+</Callout>
+
+## Creating one
+
+<CodeBlock lang="bash" title="the whole mechanism">{`.claude/
+  agents/
+    your-agent-name.md   # <- this file IS the subagent`}</CodeBlock>
+
+<Steps
+  caption="Method 1 — the /agents generator (recommended)."
+  items={[
+    { icon: "🖥️", label: "/agents", note: "Panel shows every registered agent — choose “Create new agent”." },
+    { icon: "🌍", label: "Pick scope", note: "Project or Personal." },
+    { icon: "✍️", label: "Describe it", note: "Generate with Claude or manual — the description controls triggering." },
+    { icon: "🔧", label: "Tools + model", note: "Pick tools, model (Sonnet, Opus…), a color, memory (usually None)." },
+    { icon: "📄", label: "File appears", note: ".claude/agents/<name>.md — ready to edit by hand." }
+  ]}
+/>
+
+Method 2 is just writing the file yourself — faster after the first time.
+
+<Callout type="warning">
+**Always review generated files** — paste back with project context, ask “is this
+correct?” It's a starting point, not a finished product.
+</Callout>
+
+## File anatomy: YAML + system prompt
+
+<CodeBlock lang="yaml" title="part 1 — front matter">{`---
+name: spendly-test-writer
+description: Use this agent to write pytest test cases for Spendly
+  features. Invoke after implementing any feature to generate
+  tests based on feature specs, NOT the implementation.
+tools: [Read, Edit, Glob, Grep]
+model: sonnet
+color: red
+---`}</CodeBlock>
+
+| Field | Purpose |
+| --- | --- |
+| `name` | Identifier for the subagent |
+| `description` | **Critical** — Claude uses it to decide when to auto-trigger |
+| `tools` | Which tools the agent can use |
+| `model` / `color` | Which Claude powers it / UI color when it runs |
+| `skills`, `hooks`, `memory`, `effort_level` | Optional: skills, lifecycle hooks, persistence, reasoning effort |
+
+Part 2 — the body IS the system prompt: the job, the approach, inputs, outputs, stack details, and what it must **NOT** do.
+
+<Callout type="info">
+The **“Won't Do” / negative instructions** section is often more important than
+the “Will Do” — it stops the agent drifting into unrelated work.
+</Callout>
+
+## Project vs personal scope
+
+| Scope | Location | When to use |
+| --- | --- | --- |
+| Project-level | `<project-root>/.claude/agents/` | Specific to this codebase |
+| Personal-level | `~/.claude/agents/` | Works across all your projects |
+
+## Two ways to trigger
+
+| Trigger | How |
+| --- | --- |
+| Automatic | Claude matches the `description` field on its own |
+| Manual | Direct instruction (“Use the test-writer subagent…”) or a `/command` — real workflows mostly use slash commands for explicit, predictable control |
+
+## The enhanced spec-driven workflow
+
+Two new stages slot in between Validate and Commit:
+
+<Diagram caption="The upgraded feature pipeline — testing and self code review are the new stages." chart={`
+flowchart LR
+  P[pull] --> S[spec] --> B[build] --> V[validate] --> T[test] --> R[review] --> C[commit]
+  style T fill:#fde68a,color:#000
+  style R fill:#fde68a,color:#000
+`} />
+
+| Stage | What happens | Triggered by |
+| --- | --- | --- |
+| Testing | Write tests, run tests, pass/fail report | `/test-feature` |
+| Self code review | Security + code quality audit | `/code-review-feature` |
+
+| Pipeline | Strategy | Reason |
+| --- | --- | --- |
+| test-writer → test-runner | Sequential | Runner depends on Writer's output |
+| security + quality review | Parallel | Independent — save wall-clock time |
+
+## The testing pipeline
+
+| Agent | Tools | Output |
+| --- | --- | --- |
+| test-writer | Read, Edit — no Bash | Five kinds of tests |
+| test-runner | Read + Bash — no write | Summary table, per-failure breakdown, warnings, recommendations, verdict |
+
+| Test type | What it checks |
+| --- | --- |
+| Happy path | Correct input → correct output |
+| Validation | Bad input is rejected |
+| HTTP semantics | Correct status codes, headers |
+| Edge cases | Empty data, large data, boundary values |
+| Auth | Locked-out user cannot access protected endpoints |
+
+<Callout type="warning">
+Tests are written from the **spec file, NOT the generated code** — testing against
+buggy code only proves it does what it does, not what it *should* do.
+</Callout>
+
+<CodeBlock lang="markdown" title="/test-feature — the orchestrator">{`---
+description: Writes and runs tests for a specific Spendly feature.
+  Pass the spec name as argument.
+allowed-tools: ["Read", "Edit", "Bash", "Task"]
+---
+Step 1: Use the spendly-test-writer subagent to create test
+        cases based on the spec file passed as argument.
+Step 2: Use the spendly-test-runner subagent to execute them.
+Final output: | Total Tests | Passed | Failed | Verdict |`}</CodeBlock>
+
+## The code review pipeline
+
+| Checker | Checks |
+| --- | --- |
+| security-reviewer | SQL injection, exposed secrets / API keys, auth flaws, unsafe input (raw f-string SQL), missing CSRF |
+| code-quality-reviewer | Naming, function complexity / length, duplication, missing docstrings / type hints, project conventions |
+
+<CodeBlock lang="markdown" title="/code-review-feature — parallel orchestrator">{`---
+description: Runs parallel security + code quality review
+  for a Spendly feature.
+---
+## Step 1: Launch BOTH subagents in parallel:
+   spendly-security-reviewer + spendly-quality-reviewer
+## Step 2: Merge findings into a single unified report.
+## Step 3: If changes are recommended, ask the user first.`}</CodeBlock>
+
+<Steps
+  caption="Parallel review with an approval gate at the end."
+  items={[
+    { icon: "⚡", label: "Parallel launch", note: "Security and quality reviewers run at the same time." },
+    { icon: "🧾", label: "Unified report", note: "Findings from both merged into one report." },
+    { icon: "🚦", label: "Approval gate", note: "Changes recommended? Ask the user before applying." }
+  ]}
+/>
+
+## Real numbers from the demo
+
+After `/test-feature 06-date-filter-profile` on a date range filter feature:
+
+| Metric | Value |
+| --- | --- |
+| Total tests written | 76 |
+| Passed | 73 |
+| Failed | 3 |
+| Verdict | “All 3 failures are test issues, not implementation bugs” |
+
+`/code-review-feature` then flagged an **f-string SQL pattern** — a “no-injection” violation — and after approval, the agent auto-fixed the code.
+
+## Best practices
+
+<Callout type="tip">
+**Principle of least privilege**: give each subagent only the tools it needs.
+No `Write` for a reviewer; no `Bash` for a documentation generator.
+</Callout>
+
+<Steps
+  linked={false}
+  caption="What makes a description field good — it's the auto-trigger switch."
+  items={[
+    { icon: "🎯", label: "Action-oriented", note: "“Use this agent to…”, “Invoke when…”." },
+    { icon: "📌", label: "Specific", note: "Names the exact scenario — not “helps with code”." },
+    { icon: "⏰", label: "Trigger named", note: "“after implementing any feature”." },
+    { icon: "🚫", label: "States NOTs", note: "Say what it does NOT do if there's ambiguity." }
+  ]}
+/>
+
+| Use auto-trigger when… | Use slash command when… |
+| --- | --- |
+| Job is unambiguous from context | Part of a multi-step workflow |
+| One-off tasks within a chat | You need order (sequential) or parallel runs |
+| You don't mind Claude deciding | You want predictable, repeatable runs |
+
+## In 30 seconds
+
+<Diagram caption="One file, one specialist — then pick the trigger." chart={`
+flowchart TD
+  A{"need specialization?"} -- no --> B["built-in agent"]
+  A -- yes --> C[".claude/agents/*.md"]
+  C --> D{"multi-step?"}
+  D -- no --> E["auto-trigger"]
+  D -- yes --> F["slash command"]
+`} />
+
+- Subagents save **main-session context** — heavy lifting happens in an isolated context that gets discarded.
+- Restrict tools per agent: writers get Edit, runners get Bash, reviewers get Read-only.
+- Build them for every project — testing, reviewing, migrating, documenting.
