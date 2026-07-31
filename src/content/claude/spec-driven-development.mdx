@@ -1,0 +1,219 @@
+---
+title: "Spec-driven development"
+domain: "claude"
+summary: "Write every crucial decision down BEFORE the AI writes code — the spec doc is the single source of truth."
+tags: ["spec-driven-development", "vibe-coding", "claude-code", "workflow", "planning"]
+difficulty: "intermediate"
+updated: "2026-07-30"
+icon: "📋"
+order: 7
+---
+
+<Analogy>
+Vibe coding tells a builder "make me a house" and hopes; SDD hands over the
+blueprints first.
+</Analogy>
+
+<TLDR>
+- **Vibe coding** = lose control to gain speed — the AI drives most decisions. **SDD** = take time upfront to gain control — **you drive every decision**.
+- The **spec doc** is written before any code and acts as the **single source of truth**.
+- **Agentic coding** = SDD + sub-agents + structured workflows. SDD is the foundational pillar.
+</TLDR>
+
+## Two opposite philosophies
+
+| Approach | Philosophy | Who is in charge |
+| --- | --- | --- |
+| Vibe coding | Lose control to gain speed | AI drives most decisions |
+| SDD | Take time upfront to gain control | You drive every decision |
+
+<Diagram caption="Agentic coding stands on three legs — SDD is the foundational pillar." chart={`
+flowchart LR
+  A[SDD] --> D[agentic coding]
+  B[sub-agents] --> D
+  C[structured workflows] --> D
+`} />
+
+## What is vibe coding?
+
+Build software by talking to an AI in a **fast, conversational, experimental** way — no upfront plan.
+
+<Steps
+  caption="The loop in practice — repeat until 'it feels right'."
+  items={[
+    { icon: "🖥️", label: "Open a tool", note: "Cursor, Lovable, Replit, etc." },
+    { icon: "💬", label: "Plain English", note: "“Build me a To-Do application.”" },
+    { icon: "🤖", label: "AI codes", note: "Produces an app on your behalf." },
+    { icon: "🔍", label: "You check", note: "Find issues, give more English feedback." },
+    { icon: "🔁", label: "AI iterates", note: "Refines, you repeat." },
+    { icon: "✨", label: "Feels right", note: "Ship it — or start the loop again." }
+  ]}
+/>
+
+<Callout type="info">
+Why people like it: no code knowledge required, very fast first results —
+perfect for **prototypes, exploration, side projects**.
+</Callout>
+
+## Why it breaks down — you lose control
+
+A vague prompt forces the AI to make **dozens of crucial decisions on your behalf** — invisible until the code is already written. "Build me a user authentication system" silently answers:
+
+| Hidden question | Why it matters |
+| --- | --- |
+| Which framework? | Affects every line of code that follows |
+| JWT or sessions? | Different security model, different infrastructure |
+| Password rules? | Affects UX + security |
+| After 3 failed logins? | Lockout? CAPTCHA? Email alert? |
+
+<Steps
+  caption="One choice off your real intent → the whole feature is wrong → the cycle repeats."
+  items={[
+    { icon: "🌫️", label: "Vague prompt", note: "“Build me X” — decisions left implicit." },
+    { icon: "🎲", label: "AI guesses", note: "One hidden choice misses your intent." },
+    { icon: "❌", label: "Feature wrong", note: "You only find out after the code exists." },
+    { icon: "🔁", label: "Re-prompt", note: "…and the fix changes other things too." }
+  ]}
+/>
+
+## What is SDD?
+
+A detailed **specification document** is written **before any code** — it becomes the single source of truth for what the system should do. Every crucial decision is written down and handed to the AI.
+
+| Vibe coding | SDD |
+| --- | --- |
+| Lose control → faster code | Keep control → slower start, but **right** code |
+
+## Anatomy of a spec document
+
+| # | Section | What it answers |
+| --- | --- | --- |
+| 1 | Problem statement | *Why* are we building this feature? |
+| 2 | Functional requirements | *What* exactly will the feature do? |
+| 3 | API contracts | What goes in, what comes out? |
+| 4 | Constraints | Performance, screen size, limits |
+| 5 | Edge cases & error handling | Where can it fail, and how do we handle it? |
+| 6 | Acceptance criteria | How do we know it's "done"? |
+
+## Full example — chat history sidebar
+
+A ChatGPT-like app needs a **left sidebar of past conversations**. The whole spec, section by section:
+
+<CodeBlock lang="md" title="the spec, sections 1–2">{`## Problem statement
+Users create many conversations over time but have no easy
+way to revisit them — hard to find, resume, and manage threads.
+
+## Functional requirements
+- Display a sidebar listing past chats
+- Show a short, readable title for each chat
+- Auto-generate the title from the user's first message
+- Click any chat to open it`}</CodeBlock>
+
+| Aspect | Description |
+| --- | --- |
+| Input | User clicks a particular past conversation |
+| Output | That chat opens in the main area |
+
+Constraints: sidebar loads **within 1 second**, works on **standard laptop screens**, titles stay **short and readable**.
+
+| Edge case | How to handle |
+| --- | --- |
+| No chats yet (first-time user) | Show "No chat history yet" |
+| Chat can't be loaded | Show an error message |
+| First message is very long | Use only the first part as the title |
+
+<Steps
+  linked={false}
+  caption="Acceptance criteria — either every box is checked or the feature is incomplete. No subjectivity."
+  items={[
+    { icon: "☑️", label: "List visible", note: "User can see a list of their past chats." },
+    { icon: "☑️", label: "Right chat", note: "The correct conversation displays every time." },
+    { icon: "☑️", label: "Auto-appears", note: "A new chat shows up after first use." }
+  ]}
+/>
+
+## The complete SDD workflow
+
+<Steps
+  caption="Seven beats, spec to shipped."
+  items={[
+    { icon: "📋", label: "Spec", note: "Write the spec doc — the Why + What." },
+    { icon: "🔍", label: "Review", note: "Re-read the spec: catch missing info, mistakes." },
+    { icon: "📐", label: "Design", note: "Convert into a Technical Design Plan — the How." },
+    { icon: "🔍", label: "Review", note: "Double-check the technical plan." },
+    { icon: "🧩", label: "Tasks", note: "Extract concrete tasks from the plan." },
+    { icon: "⌨️", label: "Build", note: "Write actual code for each task." },
+    { icon: "✅", label: "Validate", note: "Check the code against the spec's acceptance criteria." }
+  ]}
+/>
+
+<Callout type="warning">
+The two **Review** steps are not optional — they're the safety net that catches
+small mistakes before they get baked into code.
+</Callout>
+
+## Technical design plan — the "How" doc
+
+The spec describes **What & Why**, non-technically (a PRD). The design plan describes **How** to build it — chat-app example:
+
+<Steps
+  caption="Four typical sections of the plan."
+  items={[
+    { icon: "🗄️", label: "DB & models", note: "Chat and Message tables, one-to-many." },
+    { icon: "🔌", label: "Backend APIs", note: "The endpoints table below." },
+    { icon: "🧱", label: "Frontend", note: "ChatSidebar, ChatWindow, state, loading + error states." },
+    { icon: "🔗", label: "Integration", note: "Connect FE → BE, correct ordering, dynamic updates." }
+  ]}
+/>
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| GET | `/chats` | Fetch chat summaries (sorted by recency) |
+| GET | `/chats/{id}` | Fetch full chat (ordered messages) |
+| POST | `/chats` | Create chat (generate title + store first message) |
+| POST | `/chats/{id}/messages` | Append message |
+
+## Why spec and design stay separate
+
+Mix tech details into the spec and it's tied to one stack — migrate (FastAPI → Django) and you rewrite the **entire spec**. Keep them apart and you rewrite only the plan.
+
+<Diagram caption="One spec doc → many possible Technical Design Plans." chart={`
+flowchart LR
+  S[spec doc] --> P1[web plan]
+  S --> P2[mobile plan]
+  S --> P3[high-availability plan]
+`} />
+
+| Document | Typically written by |
+| --- | --- |
+| Spec document | Product managers (with engineering input) |
+| Technical design plan | Engineering team |
+
+## Vibe vs SDD — head to head
+
+| Dimension | Vibe coding | SDD |
+| --- | --- | --- |
+| Starting point | A feeling / rough idea | A written specification |
+| Requirements | AI infers them | You define them upfront |
+| Control | Low — AI leads | High — you lead |
+| Speed to first result | Very fast | Slower upfront, faster overall |
+| Code quality | Unpredictable | Consistent and traceable |
+| Works well for | Prototypes, exploration, side projects | Production systems, teams, complex apps |
+| Failure mode | Spaghetti code you don't understand | Over-specified, rigid if requirements change |
+
+<Callout type="tip">
+In SDD **you must understand programming** — you write the spec and lead the AI.
+Mental model: **Claude does the typing, you do the thinking and the reviewing.**
+</Callout>
+
+## In 30 seconds
+
+- The spec is the **single source of truth** — once it exists, no development happens outside it.
+- Vibe coding fails on big features because of the **hidden decisions** the AI makes.
+- Keep the **Why/What** doc separate from the **How** doc — protects against tech-stack lock-in.
+
+<Diagram caption="Which mode for this build?" chart={`
+flowchart LR
+  A{"building what?"} -- "prototype" --> B[vibe it]
+  A -- "production" --> C[write a spec]
+`} />
