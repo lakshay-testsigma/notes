@@ -1,0 +1,250 @@
+---
+title: "Plugins and marketplaces"
+domain: "claude"
+summary: "A plugin zips your whole Claude Code setup into one folder; a marketplace is the app store it ships from."
+tags: ["plugins", "marketplaces", "distribution", "plugin-json", "railway"]
+difficulty: "advanced"
+updated: "2026-07-30"
+icon: "🧩"
+order: 15
+---
+
+<Analogy>
+A plugin is a moving box for your Claude Code setup — skills, hooks, commands, subagents, MCP taped into one package; a marketplace is the app-store shelf it sits on.
+</Analogy>
+
+<Steps caption="The whole chapter in one story: expertise is easy to build, hard to hand over."
+  items={[
+    { icon: "🧑‍🔬", label: "Power user", note: "Rahul customizes Claude Code deeply — six months in, productivity roughly 2×." },
+    { icon: "🧑‍🤝‍🧑", label: "Juniors join", note: "Three new data scientists need his exact workflow from day 1." },
+    { icon: "📋", label: "Manual copy?", note: "Dozens of files into exact folders — fragile, one wrong path breaks it." },
+    { icon: "🧩", label: "Plugin", note: "One installable unit, one command, exact replica." }
+  ]}
+/>
+
+<TLDR>
+- A **plugin** = a folder packaging **skills + commands + hooks + subagents + MCP configs** as one distributable unit — installing it recreates an **exact replica** of the author's setup.
+- A **marketplace** = a GitHub repo with `marketplace.json` hosting many plugins. **Two-step install**: add marketplace → install plugin.
+- **`plugin.json` is mandatory** — without `.claude-plugin/plugin.json`, the folder is not a valid plugin.
+</TLDR>
+
+## Why plugins exist
+
+<Diagram caption="Manual copy is fragile; a plugin installs in one command." chart={`
+flowchart LR
+  A[your setup] --> B{share how?}
+  B -- manual copy --> C[fragile ❌]
+  B -- plugin --> D[exact replica ✅]
+`} />
+
+## Meet Rahul
+
+| Attribute | Detail |
+| --- | --- |
+| Role | Senior Data Scientist, fintech |
+| Primary work | Credit risk models |
+| Claude Code usage | Avid power-user, day in day out |
+
+Credit risk models decide who gets a loan: wrongly reject a **good** customer → lost business; wrongly approve a **bad** one → default, lost money.
+
+## Rahul's four customizations
+
+<Steps linked={false} caption="Four Claude Code concepts turn a generic tool into a credit-risk specialist."
+  items={[
+    { icon: "🔍", label: "EDA skill", note: "Domain-specific exploratory analysis, not generic df.info()." },
+    { icon: "🏗️", label: "Feature eng skill", note: "Recency features, target encoding, VIF checks." },
+    { icon: "⚡", label: "/model-eval", note: "One command runs the whole evaluation pipeline." },
+    { icon: "🪝", label: "DS hooks", note: "PostToolUse checks block classic data-science mistakes." }
+  ]}
+/>
+
+**EDA skill** — every new dataset gets the same disciplined pass:
+
+| Step | Claude Code is instructed to |
+| --- | --- |
+| 1 | Shape, dtypes, % missing — plus a seaborn missing-value heatmap |
+| 2 | Numerical: distribution plots; flag if $\vert\text{skew}\vert > 1.5$, suggest log transform |
+| 3 | Categorical: value counts, cardinality, flag categories < 5% |
+| 4 | Target leakage — $r > 0.95$ with target → highlight red |
+| 5 | Summary table: column, dtype, missing%, uniques, skewness, recommendation |
+
+**Feature engineering skill** — ratios (income ÷ loan_amount) beat raw columns; datetime → recency features; never one-hot high-cardinality — target encoding with 5-fold CV.
+
+**/model-eval** — one command, five outputs:
+
+- Confusion matrix
+- Classification report
+- ROC + PR curves
+- SHAP top-20 feature importance
+- One-page summary
+
+<Formula tex={"\\text{VIF}_i = \\tfrac{1}{1-R_i^2}"} caption="In the feature-engineering skill: VIF > 10 means a feature is mostly explained by the others — drop it." />
+
+<Formula tex={"\\text{Gini} = 2 \\cdot \\text{AUC} - 1 \\qquad KS = \\max_t |F_{good}(t) - F_{bad}(t)|"} caption="In /model-eval: Gini rescales AUC (1 = perfect ranking); KS is the widest gap between good and bad score curves — bigger = cleaner separation." />
+
+**Data science hooks** — a PostToolUse hook scans every generated snippet:
+
+| Pattern blocked | Why |
+| --- | --- |
+| `df.dropna()` without columns | Can wipe 60% of a 50-column credit dataset |
+| Scaler/encoder fit on full data | Classic leakage — inflates validation metrics |
+| Hardcoded paths | Breaks on anyone else's machine |
+| Accuracy on imbalanced data | At 5–10% default rate, 90% accuracy = useless |
+
+**MCP experiment tracker** — log trained models and query past experiments ("what did Team X build last month?") without leaving Claude Code.
+
+## What a plugin is — structure and plugin.json
+
+Nothing but a folder holding everything you created, packaged for distribution — the recipient installs it and gets your workflow instantly.
+
+| Folder / file | Purpose |
+| --- | --- |
+| `.claude-plugin/plugin.json` | Manifest — without it, **not a valid plugin** |
+| `skills/` | Skill files (`.md` instructions) |
+| `hooks/` | Hook scripts (e.g. PostToolUse checks) |
+| `commands/` | Slash commands, each in its own subfolder |
+| `.mcp.json` | Bundled MCP server config |
+| `agents/` (optional) | Subagent definitions |
+
+<CodeBlock lang="json" title="the manifest">{`{
+  "name": "rahul-ds-toolkit",
+  "version": "1.0.0",
+  "description": "Credit risk DS toolkit -- EDA, feature engineering, model eval",
+  "author": { "name": "Rahul Sharma", "url": "https://github.com/rahul-sharma" },
+  "repository": "https://github.com/rahul-sharma/rahul-ds-toolkit",
+  "license": "MIT"
+}`}</CodeBlock>
+
+| Field | Meaning |
+| --- | --- |
+| `name` | Used during installation |
+| `version` | Semantic version (MAJOR.MINOR.PATCH) |
+| `description` | Short human-readable description |
+| `author` / `repository` / `license` | Who made it, where it lives, terms |
+
+## Marketplaces
+
+Where multiple plugins are stored together so a team (or the community) can browse and install.
+
+| Concept | Phone world | Claude Code |
+| --- | --- | --- |
+| Container | App Store / Google Play | Marketplace |
+| Item inside | Individual app | Individual plugin |
+| How to use | Install store, then app | Add marketplace, then install plugin |
+
+<CodeBlock lang="json" title="technically: a github repo with .claude-plugin/marketplace.json">{`{
+  "name": "my-team-marketplace",
+  "owner": { "name": "Team X" },
+  "plugins": [
+    { "name": "rahul-ds-toolkit", "source": "..." },
+    { "name": "another-plugin",   "source": "..." }
+  ]
+}`}</CodeBlock>
+
+| Type | What it is | Installation |
+| --- | --- | --- |
+| **Official Anthropic** | Ships with Claude Code; curated (Supabase, Vercel, Figma…) — 172 plugins at recording | Pre-installed, nothing to do |
+| **Third-party** | Built by teams/community; public GitHub repo with valid `marketplace.json` | Must be manually added first |
+
+**Subagents travel too** — drop definition files in `agents/` and they distribute automatically with the plugin.
+
+## Installing: the /plugin command
+
+| Tab | Purpose |
+| --- | --- |
+| **Discover** | Browse plugins from all installed marketplaces |
+| **Installed** | Plugins currently on your machine |
+| **Marketplaces** | View, add, or remove marketplaces |
+
+<Steps caption="Adding a third-party marketplace — then Discover shows both (172 + 12 = 184 plugins)."
+  items={[
+    { icon: "🗂️", label: "Marketplaces tab", note: "Open /plugin, go to the Marketplaces tab." },
+    { icon: "➕", label: "Add marketplace", note: "Choose Add Marketplace." },
+    { icon: "🔗", label: "Paste URL, Enter", note: "The third-party marketplace's GitHub repo URL — its plugins appear under Discover." }
+  ]}
+/>
+
+## Real workflow: the last Spendly feature — Delete Expense
+
+| Step | Command / action | What happens |
+| --- | --- | --- |
+| 1 | `create-spec 09-delete-expense` | New branch + spec document |
+| 2 | Plan Mode + prompt | Implementation plan produced |
+| 3 | Approve plan | Implementation begins |
+| 4 | Test in browser | Delete works with confirmation dialog |
+| 5 | `/ship-feature` | PR created, merged, back on `main` |
+
+## Why Vercel failed for Flask
+
+| Aspect | Vercel's behavior |
+| --- | --- |
+| Best suited for | Next.js and other front-end frameworks |
+| Handles Flask by | Spinning each request up as a serverless function |
+| The catch | Flask apps don't run correctly as serverless functions |
+| Conclusion | Vercel ❌ → **Railway** ✅ — which ships its own plugin via a third-party marketplace |
+
+## Deploying with the Railway plugin
+
+| # | Step | Command / action |
+| --- | --- | --- |
+| 1 | Create account | railway.app, sign in via GitHub |
+| 2 | Install CLI | `npm install -g @railway/cli` |
+| 3 | Log in + verify | `railway login` · `railway whoami` |
+| 4 | Add marketplace | `/plugin marketplace add railwayapp/railway-skills` |
+| 5 | Install plugin | `/plugin install railway@railway-skills` |
+| 6 | Choose scope | Install for you in **this repo only** |
+| 7 | Deploy | "Deploy this Flask app to Railway and give me a public URL" |
+
+<Callout type="warning">
+Railway's default is **SQLite + ephemeral filesystem** — every redeploy wipes the database. Switch to PostgreSQL or MySQL for persistent data.
+</Callout>
+
+<Chart data={[{ label: "manual deploy", value: 30 }, { label: "with plugin", value: 1 }]} valueLabel="minutes (approx.)" caption="Docs, Procfile, env vars, gunicorn, debugging… vs one prompt." />
+
+## Useful plugins worth exploring
+
+| Plugin | Purpose |
+| --- | --- |
+| Superpowers | General software-dev workflows |
+| Frontend Design | Better frontend design quality |
+| Context7 | Up-to-date library docs in Claude Code |
+| Code Simplifier | Refactors generated code for readability |
+| Skill Creator | Guided prompts for creating new skills |
+| GitHub / Playwright | Repo ops · browser automation |
+| Supabase / Vercel / Figma / Railway | DB backend · Next.js deploys · design-to-code · Flask deploys |
+
+<Callout type="tip">
+Don't install every plugin — pick the ones mapping to your actual workflow. Too many degrades performance and adds noise.
+</Callout>
+
+## Mental-model cheat sheet
+
+| Concept | One-liner |
+| --- | --- |
+| Skill | Markdown file of step-by-step instructions for a task |
+| Slash command | Reusable shortcut triggering a predefined sequence |
+| Hook | Script auto-run on lifecycle events (e.g. PostToolUse) |
+| Subagent | Specialised persona Claude Code delegates sub-tasks to |
+| MCP server | External tool/service connected via Model Context Protocol |
+| **Plugin** | Folder packaging all of the above as one distributable unit |
+| **Marketplace** | GitHub repo (`marketplace.json`) hosting plugins to browse-and-install |
+
+| Rule | Detail |
+| --- | --- |
+| Manifests are mandatory | No `plugin.json` → not a plugin; no `marketplace.json` → not a marketplace |
+| Two-step install | Add marketplace → then install plugin |
+| Vercel ≠ Flask; Railway + SQLite | Use Railway for Flask; PostgreSQL/MySQL for persistent data |
+| Plugin scope | "User" = everywhere; "This repo only" = one project |
+| Don't over-install | Performance + cognitive overhead |
+
+## In 30 seconds
+
+<Diagram caption="The full ecosystem: build pieces, package, publish, teammate installs an exact replica." chart={`
+flowchart LR
+  B[build pieces] --> P[plugin.json]
+  P --> M[marketplace.json]
+  M --> I["/plugin install"]
+  I --> R[exact replica]
+`} />
+
+- **Plugins are the final piece of agentic coding** — one expert's tuned workflow (skills, hooks, commands, subagents, MCP) becomes every teammate's default. That closes the course.
