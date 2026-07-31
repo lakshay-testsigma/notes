@@ -1,0 +1,214 @@
+---
+title: "Subagents — why they exist"
+domain: "claude"
+summary: "A subagent swallows the 30k-token codebase in its own context and hands back a 500-token plan — 29,500 tokens saved every single turn."
+tags: ["claude-code", "subagents", "context-window", "tokens", "parallelism"]
+difficulty: "advanced"
+updated: "2026-07-30"
+icon: "🧠"
+order: 11
+---
+
+<Analogy>
+A subagent is a function call — you never read the 200 lines inside; you pass
+input, it returns one clean output.
+</Analogy>
+
+<Diagram caption="The whole idea: heavy lifting happens in an isolated window; only the distilled result comes back." chart={`
+flowchart LR
+  U([you]) --> M[main agent]
+  M -- task --> S[subagent]
+  C[(30k codebase)] --> S
+  S -- 500-token plan --> M
+`} />
+
+<TLDR>
+- **LLMs are stateless** — "memory" is your app resending the whole conversation, which is **catastrophic for coding**.
+- A **subagent** = a specialized assistant in its **own isolated context**: heavy work in, distilled summary out, then destroyed.
+- Four wins — **isolation, specialization, modularity, parallelism**; triggered **implicitly** (Claude decides) or **explicitly** (you say so).
+</TLDR>
+
+## How LLMs really work
+
+You never talk to the model directly — every interaction is one request-response cycle through an API wrapper. No session, no persistent connection.
+
+<Diagram caption="One request, one response — the model keeps nothing in between." chart={`
+flowchart LR
+  Y([you]) --> W[API wrapper] --> L[LLM]
+  L -. response .-> Y
+`} />
+
+## The core truth: stateless
+
+Anything you said yesterday — or 10 seconds ago — is gone the moment the response returns.
+
+| Call | Question | LLM memory | Response |
+| --- | --- | --- | --- |
+| Call 1 | "Capital of France?" | Empty | "Paris." |
+| Call 2 | "What about Germany?" | Empty | "In what context?" |
+
+## The hack: resend everything
+
+<Steps
+  caption="Apps fake memory by replaying the whole conversation on every API call — memory lives in your app, not the model."
+  items={[
+    { icon: "💬", label: "You ask", note: "A brand-new message goes to the app." },
+    { icon: "📚", label: "App appends", note: "It's stacked onto the full conversation history." },
+    { icon: "🔁", label: "Resend all", note: "The entire history ships with every single call." },
+    { icon: "🪄", label: "Fake memory", note: "The model only appears to remember." }
+  ]}
+/>
+
+## Why the hack fails for coding
+
+A ~30,000-token codebase, one request — "add authentication". Watch the escalation:
+
+| Turn | What gets sent | Tokens · cost |
+| --- | --- | --- |
+| 1 | codebase (30k) + message | ~30,100 · ~$0.09 |
+| 2 | codebase + history (2.1k) + message | ~32,200 · heavier |
+| 3 | codebase + history (5k) + new code (3.5k) + message | ~39,000 · heavier |
+| 8 | codebase + huge history + all generated code | ~76,100 · ~$0.23/turn |
+
+<Chart
+  data={[
+    { label: "Turn 1", value: 30100 },
+    { label: "Turn 2", value: 32200 },
+    { label: "Turn 3", value: 39000 },
+    { label: "Turn 8", value: 76100 }
+  ]}
+  valueLabel="tokens sent"
+  caption="Running total over 8 turns: ~380,000 tokens — ~$1.14 for one feature."
+/>
+
+<Callout type="warning">
+The codebase was needed **only in Turn 1**. From Turn 2 the model already has the
+plan — statelessness forces the full 30k resend anyway.
+</Callout>
+
+## The two real dangers
+
+| Danger | What happens |
+| --- | --- |
+| Context overflow | Oldest tokens **silently dropped** — no warning, invisible corruption |
+| Lost in the middle | Attention peaks at start & end — critical files mid-context get **ignored** |
+
+<Diagram caption="Even before overflow: attention is highest at the edges, lowest in the middle." chart={`
+flowchart LR
+  A[start<br/>high attention] --> B[middle<br/>ignored] --> C[end<br/>high attention]
+`} />
+
+## What is a subagent?
+
+You chat with the **Main Agent**; it can spawn a brand-new agent that:
+
+<Steps
+  caption="The subagent lifecycle — four beats, then gone."
+  items={[
+    { icon: "🐣", label: "Spawned", note: "Fresh, fully isolated context window." },
+    { icon: "🛠️", label: "Works", note: "Performs one specialized task inside that window." },
+    { icon: "📦", label: "Returns", note: "Hands back a small, distilled result." },
+    { icon: "💥", label: "Destroyed", note: "Gone the moment its work is done." }
+  ]}
+/>
+
+## The math behind the benefit
+
+Without a planning subagent, every turn carries the full codebase; with one, the subagent absorbs the 30k **once** and returns a 500-token plan.
+
+<Formula tex={"\\text{Tokens}_n = \\underbrace{30{,}000}_{\\to\\ 500} + \\text{prev\\_conv}_n + \\text{new\\_msg}_n"} caption="Per-turn cost: the 30k codebase term shrinks to a 500-token summary." />
+
+<Formula tex={"\\Delta = 30{,}000 - 500 = 29{,}500"} caption="Tokens saved every single turn." />
+
+<Chart
+  data={[
+    { label: "without subagent", value: 30000 },
+    { label: "with subagent", value: 500 }
+  ]}
+  valueLabel="codebase tokens carried per turn"
+  caption="60× lighter: the main agent carries a summary, not the codebase."
+/>
+
+| | Without subagent | With subagent |
+| --- | --- | --- |
+| Main context | 30,000 tokens of codebase | ~500-token summary |
+| Resent | every single turn | every turn — but tiny |
+| Context | fills fast | stays lean |
+| Costs | explode | stay low |
+
+## Four key advantages
+
+<Steps
+  linked={false}
+  caption="Why subagents win — four independent superpowers."
+  items={[
+    { icon: "🧊", label: "Isolation", note: "Heavy reads happen elsewhere; only the distilled result returns." },
+    { icon: "🎯", label: "Specialization", note: "Each agent gets its own prompt, tools, model, permissions, hooks, skills." },
+    { icon: "🧩", label: "Modularity", note: "Split the whole SDLC into dedicated agents." },
+    { icon: "⚡", label: "Parallelism", note: "Own contexts → truly independent tasks run at once." }
+  ]}
+/>
+
+| SDLC stage | Specialized agent |
+| --- | --- |
+| Understand the code | **Explorer** |
+| Design the change | **Planner** |
+| Write the code | **Coder** |
+| Review the code | **Reviewer** |
+| Test the code | **Tester** |
+| Audit for security | **Security** |
+
+<Callout type="tip">
+3 datasets, each needing EDA? Spawn **3 parallel EDA subagents** — one per
+dataset — and they all finish in the time of one.
+</Callout>
+
+## Real-world use cases
+
+| Use case | Why a subagent |
+| --- | --- |
+| Codebase exploration | Huge codebase never loaded into main context |
+| Code review | The agent that wrote the code is biased — use a fresh one |
+| Testing | The author of code is not the best person to write its tests |
+| Multi-stage pipelines | Clean hand-offs: contract → implementation → test |
+| Parallel independent tasks | Three services built simultaneously by 3 subagents |
+| Security audits | A dedicated security-focused prompt catches more |
+
+## Taxonomy: built-in vs custom
+
+| Type | Scope | Examples |
+| --- | --- | --- |
+| Built-in | Always available | Explore, Plan, General-Purpose |
+| Custom — user-level | All projects on the machine | lives in `~/.claude/` |
+| Custom — project-level | This project only | lives in `.claude/` |
+
+<CodeBlock lang="bash" title="where custom subagents live">{`~/.claude/    # user-level — every project on this machine
+.claude/      # project-level — this project only`}</CodeBlock>
+
+## The built-ins
+
+| Built-in | Triggers when | Job |
+| --- | --- | --- |
+| **Explore** | You ask to explore/analyze the codebase | Reads files, returns summary |
+| **Plan** | You enter Plan Mode | Reads spec, designs implementation |
+| **General-Purpose** | Claude judges a task needs isolation | Handles read/write tasks |
+
+## How they get triggered
+
+Two modes — identical for built-in and custom subagents:
+
+| Mode | How it works |
+| --- | --- |
+| **Implicit** | Claude recognizes the task needs a subagent, delegates on its own |
+| **Explicit** | You tell Claude which subagent to use |
+
+<Callout type="info">
+In practice, **implicit is by far the most common** — Claude Code uses subagents
+automatically for most explore/plan workflows.
+</Callout>
+
+## In 30 seconds
+
+- Stateless model → app replays history → for coding that resend is **catastrophic**: overflow, lost-in-the-middle, ~$1.14 per feature.
+- A **subagent** = isolated context, distilled return, destroyed after — **29,500 tokens saved per turn** in the example.
+- **Built-in** (Explore, Plan, General-Purpose) vs **custom** (user vs project level); triggered **implicitly** (common) or **explicitly**.
