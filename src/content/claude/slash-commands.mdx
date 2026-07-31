@@ -1,0 +1,202 @@
+---
+title: "Slash commands and sessions"
+domain: "claude"
+summary: "One word starting with / fires an entire predefined workflow — no full prompt required."
+tags: ["claude-code", "slash-commands", "sessions", "models", "permissions"]
+difficulty: "beginner"
+updated: "2026-07-30"
+icon: "⌨️"
+order: 3
+---
+
+<Analogy>
+A slash command is speed dial: one word dials a whole workflow you'd otherwise
+type out every single time.
+</Analogy>
+
+<Diagram caption="The key idea: one single word → full prompt invoked → repeatable workflow executes." chart={`
+flowchart LR
+  A["/word"] --> B["full prompt"] --> C["workflow runs"]
+`} />
+
+<TLDR>
+- **Slash commands** = shortcuts starting with `/` that trigger a predefined action instantly.
+- A **session** = one conversation, from running `claude` to typing `/exit` — auto-saved, resumable.
+- Discipline: **one session = one task**, `/rename` it immediately, watch `/usage`.
+</TLDR>
+
+## The problem they solve
+
+Programmers repeat the same requests — closing sessions, switching models, checking usage. A full prompt each time is waste.
+
+<Steps
+  caption="Manual workflows vs instant slash commands."
+  items={[
+    { icon: "⌨️", label: "Long prompts", note: "Typing detailed repetitive prompts every single time." },
+    { icon: "🐢", label: "Slow, error-prone", note: "Redundant, time-wasting, inconsistent." },
+    { icon: "⚡", label: "One command", note: "Instantly triggers the entire predefined workflow." }
+  ]}
+/>
+
+## Two types
+
+| Type | What it is |
+| --- | --- |
+| **Built-in** | Pre-installed with Claude Code — `/exit`, `/model`, `/resume`, `/config` |
+| **Custom** | Commands **you** create for your own workflow |
+
+<Callout type="tip">See every available command: type `/` in the terminal and scroll with arrow keys.</Callout>
+
+## Sessions
+
+A session is **one conversation** — everything from running `claude` to typing `/exit`.
+
+<Steps
+  linked={false}
+  caption="What every session carries."
+  items={[
+    { icon: "🆔", label: "Unique ID", note: "Every session gets its own identifier." },
+    { icon: "💬", label: "Full history", note: "Everything you type and Claude responds is stored." },
+    { icon: "📁", label: "Working dir", note: "Remembers which project directory you were in." },
+    { icon: "💾", label: "Auto-saved", note: "Stored in ~/.claude/projects/ — resumable anytime." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="two ways back into a session">{`claude -r    # resume from the terminal (before starting Claude Code)
+/resume      # used from INSIDE a running session`}</CodeBlock>
+
+## Session best practices
+
+| Practice | Why |
+| --- | --- |
+| One session = one task | Separate session per feature |
+| Name it immediately | `/rename` right away |
+| Commit frequently | Git commit at every milestone |
+| `/btw` for quick questions | Keeps the main conversation context clean |
+| `/export` before big refactors | Save context as a file first |
+
+## /exit /resume /rename — session trio
+
+<CodeBlock lang="bash" title="open, switch, label">{`/exit                    # close session, back to the normal terminal
+/resume                  # list all past sessions, pick one, Enter
+/rename intro-session    # proper names = easy to identify later`}</CodeBlock>
+
+## /btw — side questions without polluting context
+
+"By The Way": quick reference questions that never enter your conversation history.
+
+<CodeBlock lang="bash" title="ask on the side">{`/btw What is Jinja templating engine in Flask?`}</CodeBlock>
+
+<Steps
+  caption="A /btw question, beat by beat."
+  items={[
+    { icon: "🧑‍💻", label: "Mid-feature", note: "You're deep in developing a feature." },
+    { icon: "💭", label: "Random question", note: "Something pops into your head — type /btw + question." },
+    { icon: "🤖", label: "Parallel answer", note: "Claude answers on the side; the main task never stops." },
+    { icon: "👋", label: "Spacebar", note: "Press it to dismiss the answer." },
+    { icon: "🫥", label: "Gone", note: "Q&A disappears — never enters your main context window." }
+  ]}
+/>
+
+## /export /logout /login
+
+<CodeBlock lang="bash" title="data + account">{`/export file.md   # entire conversation → Markdown file; do this before big refactors
+/logout           # log out of Claude Code (switch accounts)
+/login            # trigger the login flow`}</CodeBlock>
+
+## /model — pick your brain
+
+| Feature | Opus 4.6 | Sonnet 4.6 | Haiku 4.5 |
+| --- | --- | --- | --- |
+| Model string | claude-opus-4-6 | claude-sonnet-4-6 | claude-haiku-4-5 |
+| Input price | $5/MTok | $3/MTok | $1/MTok |
+| Output price | $25/MTok | $15/MTok | $5/MTok |
+| Context window | 1,000,000 | 1,000,000 | 200,000 |
+| Max output tokens | 128,000 | 64,000 | 64,000 |
+| Latency | Moderate | Fast | Fastest |
+
+<Chart data={[{ label: "Opus 4.6", value: 25 }, { label: "Sonnet 4.6", value: 15 }, { label: "Haiku 4.5", value: 5 }]} valueLabel="output $/MTok" caption="Opus output costs 5× Haiku — match the model to the job." />
+
+<Steps
+  caption="The power-user pattern for models."
+  items={[
+    { icon: "🧠", label: "Plan on Opus", note: "Thinking through architecture, writing specs and design docs." },
+    { icon: "🔧", label: "Build on Sonnet", note: "The plan is ready — everyday coding and feature building." }
+  ]}
+/>
+
+## Monitoring — /usage /extra-usage /stats /insights
+
+<Steps
+  caption="Four levels of knowing where your tokens go."
+  items={[
+    { icon: "📟", label: "/usage", note: "Current session usage + weekly limit across all sessions." },
+    { icon: "💳", label: "/extra-usage", note: "Hit the limit mid-development? Buy a $5 or $10 top-up." },
+    { icon: "📊", label: "/stats", note: "Tokens, models, session count, active days, longest session, streak." },
+    { icon: "📄", label: "/insights", note: "HTML report: what you do right/wrong, suggestions, ambitious workflows, section-wise analysis." }
+  ]}
+/>
+
+## /config — settings
+
+| Setting | Default | Does |
+| --- | --- | --- |
+| Auto-compact | true | Compresses long conversations automatically |
+| Thinking mode | true | Enables step-by-step reasoning |
+| Terminal progress bar | true | Progress bar for long operations |
+| Show turn duration | true | Shows how long each turn takes |
+| Default permission mode | Default | Controls default tool permissions |
+| Auto-update channel | latest | Which update channel to follow |
+
+## /permissions — who touches what
+
+Claude Code is an agent with tools (read, write, bash, web search) — by default it **asks** before using any of them.
+
+| Tab | Meaning |
+| --- | --- |
+| Allow | Used **without asking** |
+| Ask | **Always asks** before each use (default) |
+| Deny | **Never** used |
+| Workspace | Workspace-level permission settings |
+
+| Scope | Applies to |
+| --- | --- |
+| Local project | Only you, only this project |
+| Global project | Everyone (stored in `.claude/` folder) |
+| User | All projects on your machine |
+
+<Callout type="warning">
+Be extremely careful with the **Allow** list — only tools that are safe to run without your review.
+</Callout>
+
+## /theme /voice
+
+<CodeBlock lang="bash" title="looks + input">{`/theme   # dark (default), light, other theme options
+/voice   # hold Spacebar, speak, release; /voice again to disable`}</CodeBlock>
+
+## Quick reference — all key commands
+
+| Command | Purpose | Category |
+| --- | --- | --- |
+| `/exit` | Close the current session | Session |
+| `/resume` | Switch to a different past session | Session |
+| `/rename <name>` | Rename the current session | Session |
+| `/btw <q>` | Side question without polluting context | Productivity |
+| `/export <file>` | Export conversation to a file | Data |
+| `/logout` · `/login` | Log out / log in | Account |
+| `/model` | Switch Opus / Sonnet / Haiku | Model |
+| `/usage` | Check current token usage | Monitoring |
+| `/extra-usage` | Purchase additional tokens | Monitoring |
+| `/stats` | View usage statistics | Analytics |
+| `/insights` | Detailed usage analysis report | Analytics |
+| `/config` | Modify Claude Code settings | Configuration |
+| `/permissions` | Manage tool permission rules | Security |
+| `/theme` | Change visual appearance | Personalization |
+| `/voice` | Toggle voice input mode | Input |
+
+## In 30 seconds
+
+- One `/word` → full prompt → whole workflow. Start with `/exit`, `/model`, `/rename`, `/btw`, `/usage`.
+- **Session discipline**: one session per task, rename immediately, commit frequently.
+- **Model strategy**: Opus for planning → Sonnet for implementation.
+- Check `/usage` regularly so limits never surprise you.
