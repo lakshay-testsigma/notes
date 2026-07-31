@@ -1,0 +1,149 @@
+---
+title: "Quick reference"
+domain: "claude"
+summary: "The whole course on one laminated card — 17 commands, one git loop, three exit codes, two transports."
+tags: ["claude-code", "cheat-sheet", "slash-commands", "hooks", "mcp"]
+difficulty: "beginner"
+updated: "2026-07-30"
+icon: "⚡"
+order: 16
+---
+
+<Analogy>
+The laminated card in your wallet — everything the course taught, shrunk to the
+commands you'll actually type.
+</Analogy>
+
+<TLDR>
+- **17 commands** cover daily Claude Code use: session, context, setup.
+- Hooks speak in **exit codes**: `0` pass, `1` warn, **`2` block**.
+- MCP has two transports: **stdio** for local tools, **http** for remote APIs.
+</TLDR>
+
+## Essential commands
+
+One table, four habits: start, steer, clean, configure.
+
+| Command | Does |
+| --- | --- |
+| `claude` | Start Claude Code |
+| `claude -r` | Resume a past session |
+| `/exit` | Close the current session |
+| `/rename <name>` | Rename the current session |
+| `/model` | Switch between Opus/Sonnet/Haiku |
+| `/usage` | Check token usage |
+| `/compact` | Manually compact context |
+| `/clear` | Clear conversation history |
+| `/context` | Show context window usage |
+| `/permissions` | Manage tool permissions |
+| `/init` | Auto-generate CLAUDE.md |
+| `/btw <q>` | Side question without polluting context |
+| `/mcp` | List MCP server connections |
+| `/agents` | Manage subagents |
+| `/plan` | Enter Plan Mode |
+| `/memory` | View and edit memory files |
+| `/config` | Modify Claude Code settings |
+
+## A session, start to finish
+
+<Steps
+  caption="The four session commands in the order you use them."
+  items={[
+    { icon: "🚀", label: "claude", note: "Open a fresh session in your repo." },
+    { icon: "🏷️", label: "/rename", note: "Name it so you can find it again." },
+    { icon: "🚪", label: "/exit", note: "Close it when you're done." },
+    { icon: "⏪", label: "claude -r", note: "Pick up exactly where you left off." }
+  ]}
+/>
+
+## Context hygiene, escalating
+
+<Steps
+  caption="Gentlest first — escalate only when the window keeps filling."
+  items={[
+    { icon: "📊", label: "/context", note: "Check how full the window is." },
+    { icon: "💬", label: "/btw", note: "Ask a side question without polluting context." },
+    { icon: "🗜️", label: "/compact", note: "Squeeze the history down, keep the thread." },
+    { icon: "🧹", label: "/clear", note: "Nuclear option — wipe and start clean." }
+  ]}
+/>
+
+## Wire it up once
+
+<Steps
+  linked={false}
+  caption="The setup commands — each configures one piece of the harness."
+  items={[
+    { icon: "🧠", label: "/init", note: "Generate CLAUDE.md for the repo." },
+    { icon: "🔐", label: "/permissions", note: "Decide what tools run without asking." },
+    { icon: "🔌", label: "/mcp", note: "See which MCP servers are connected." },
+    { icon: "🤖", label: "/agents", note: "Manage your subagents." },
+    { icon: "⚙️", label: "/config", note: "Everything else lives in settings." }
+  ]}
+/>
+
+## Git workflow cheat sheet
+
+<Steps
+  caption="The whole feature loop — five beats, then the code block below."
+  items={[
+    { icon: "🌱", label: "Branch", note: "Fresh feature branch off an up-to-date main." },
+    { icon: "💾", label: "Commit", note: "Stage everything, commit with a feat: message." },
+    { icon: "⬆️", label: "Push", note: "Send the branch to origin." },
+    { icon: "🔀", label: "PR → merge", note: "On GitHub: create the PR, merge it." },
+    { icon: "🧹", label: "Cleanup", note: "Back to main, pull, delete the branch." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="the whole loop, copy-paste ready">{`# Start a new feature
+git checkout main && git pull origin main
+git checkout -b feature/<name>
+
+# After development
+git add .
+git commit -m "feat: <description>"
+git push origin feature/<name>
+
+# On GitHub: Create PR -> Merge
+
+# Cleanup
+git checkout main && git pull origin main
+git branch -D feature/<name>`}</CodeBlock>
+
+## Hook exit codes
+
+Your hook script's exit code is its answer to "may this tool run?"
+
+| Code | Meaning | Effect |
+| --- | --- | --- |
+| `0` | OK | Tool executes normally |
+| `1` | Warning | Tool still executes, error logged |
+| `2` | Block | Tool is cancelled |
+
+<Diagram caption="Only exit code 2 stops the tool — 0 and 1 both let it run." chart={`
+flowchart LR
+  H[hook exits] --> Z["0"] --> R[runs]
+  H --> O["1"] --> L[runs + log]
+  H --> T["2"] --> X[cancelled]
+`} />
+
+## MCP transport types
+
+| Transport | When to use | Example |
+| --- | --- | --- |
+| `stdio` | Local tool on your machine | SQLite, local DB |
+| `http` | Remote API endpoint | GitHub, Figma |
+
+<Diagram caption="Where the tool lives decides the transport." chart={`
+flowchart LR
+  C[Claude Code] -->|stdio| L[(local DB)]
+  C -->|http| R[remote API]
+`} />
+
+## In 30 seconds
+
+- **Session**: `claude` → `/rename` → `/exit` → `claude -r`.
+- **Context**: `/context` to check, `/btw` for asides, `/compact` before `/clear`.
+- **Git**: branch off main → commit → push → PR → cleanup.
+- **Hooks**: exit `2` blocks the tool; `0` and `1` let it run.
+- **MCP**: local tool → `stdio`, remote API → `http`.
