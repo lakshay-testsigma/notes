@@ -1,0 +1,215 @@
+---
+title: "Getting started with Claude Code"
+domain: "claude"
+summary: "One curl command puts a senior developer inside your terminal — $20/month via Claude Pro, or free through Ollama."
+tags: ["claude-code", "setup", "terminal", "bash-mode", "ollama"]
+difficulty: "beginner"
+updated: "2026-07-30"
+icon: "🛠️"
+order: 2
+---
+
+<Analogy>
+Claude Code is a senior developer who lives in your terminal — no website, no
+GUI: `cd` into your project, type `claude`, start talking.
+</Analogy>
+
+<Steps
+  linked={false}
+  caption="Five things that define it."
+  items={[
+    { icon: "💵", label: "Paid", note: "~$20/month via the Claude Pro plan." },
+    { icon: "⌨️", label: "Terminal only", note: "No graphical interface — it runs in your command prompt." },
+    { icon: "🧠", label: "Anthropic LLMs", note: "Connects to Opus, Sonnet and Haiku." },
+    { icon: "❗", label: "Bash Mode", note: "A special mode for running shell commands inside the chat." },
+    { icon: "📁", label: "Project folder", note: "Best run inside your project so it can read the codebase." }
+  ]}
+/>
+
+<TLDR>
+- **One curl command** installs it; type **`claude`** to start; authorize in the browser **once**.
+- Always run it **inside your project folder** — it reads and understands your codebase.
+- **Bash Mode** (`Shift + !`) runs shell commands in the chat; **Ollama** is the free alternative.
+</TLDR>
+
+## Prerequisites
+
+| Prerequisite | Purpose | Get it |
+| --- | --- | --- |
+| Computer (Mac/Linux/Windows) | Runs on all major OS | — |
+| Terminal / Command Prompt | Interaction medium | Built into every OS |
+| Claude AI account | Required to authenticate | claude.ai |
+| Claude Pro plan ($20/month) | Required to connect | Upgrade from claude.ai |
+| Node.js v18+ | Runtime requirement | nodejs.org |
+| Python 3.11+ | Demo project (Flask app) | python.org |
+| Git | Version control | git-scm.com |
+| VS Code (recommended) | Code editor | code.visualstudio.com |
+
+## Install — one line
+
+<CodeBlock lang="bash" title="the whole installation">{`curl -fsSL https://claude.ai/install.sh | bash`}</CodeBlock>
+
+<Steps
+  caption="The one-liner, piece by piece."
+  items={[
+    { icon: "🌐", label: "curl", note: "Downloads content from the internet." },
+    { icon: "🤫", label: "-fsSL", note: "Flags that make curl work silently and follow redirects." },
+    { icon: "📜", label: "the URL", note: "Hosts the installation script by Anthropic." },
+    { icon: "🚿", label: "| bash", note: "Pipes the script straight into bash for execution." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="what success looks like">{`Claude Code successfully installed!
+  Version:  2.1.81
+  Location: ~/.local/bin/claude
+  Next: Run claude --help to get started`}</CodeBlock>
+
+## First run — one-time login
+
+Type `claude` in your project folder. The first run walks you through auth:
+
+<Steps
+  caption="First-time authentication flow."
+  items={[
+    { icon: "🤝", label: "Trust prompt", note: "“Do you trust the files in this folder?” — type Yes." },
+    { icon: "🌍", label: "Browser opens", note: "Automatically, pointing at your Anthropic account." },
+    { icon: "✅", label: "Authorize", note: "Click the Authorize button." },
+    { icon: "⌨️", label: "Back to terminal", note: "You are now logged in." }
+  ]}
+/>
+
+<Callout type="info">
+Authorization happens **only once**. After that, Claude remembers your
+credentials and logs you in automatically.
+</Callout>
+
+## Setting up the project
+
+The tutorial starts from a pre-built **Flask Expense Tracker** — simulating
+joining a company and inheriting an existing project.
+
+<Steps
+  caption="From zip file to open workspace."
+  items={[
+    { icon: "📦", label: "Download", note: "The project folder arrives as a zip file." },
+    { icon: "🗂️", label: "Extract", note: "Unzip to your Desktop (or preferred location)." },
+    { icon: "🧑‍💻", label: "Open VS Code", note: "Your editor for the whole course." },
+    { icon: "📁", label: "Open Folder", note: "File → Open Folder → the extracted project." }
+  ]}
+/>
+
+| Feature | Status |
+| --- | --- |
+| Home / landing page | ✅ Working |
+| User registration UI | UI ready — backend NOT implemented |
+| User login UI | UI ready — backend NOT implemented |
+| Expense tracking | Not yet built |
+| Database integration | Not yet built |
+
+## Running the Flask project
+
+<CodeBlock lang="bash" title="venv, install, run">{`python3 -m venv venv             # 1. create a virtual environment
+source venv/bin/activate         # 2. activate it (Windows: venv\\Scripts\\activate)
+pip install -r requirements.txt  # 3. install dependencies
+python3 app.py                   # 4. run — server starts at http://localhost:5001`}</CodeBlock>
+
+| Layer | Technology | Purpose |
+| --- | --- | --- |
+| Backend | Python 3.11 + Flask | Server-side logic, routing |
+| Database | SQLite | Lightweight file-based database |
+| ORM | Flask-SQLAlchemy | Python interface to SQLite |
+| Templating | Jinja2 | Generates dynamic HTML pages |
+| Frontend CSS | Vanilla CSS | Styling |
+| Fonts | Google Fonts | Custom typography |
+| Testing | pytest + pytest-flask | Automated testing |
+
+## Bash Mode
+
+Press **`Shift + !`** in the chat to switch modes. Claude **remembers** the
+commands you run, **sees** their output, and answers questions about them later.
+
+<Diagram caption="One keystroke toggles modes — and the output feeds the conversation." chart={`
+flowchart LR
+  C["chat mode"] -- "Shift + !" --> B["bash mode"]
+  B --> S["shell runs it"]
+  S --> O["output joins chat"]
+`} />
+
+<CodeBlock lang="text" title="the two modes side by side">{`Chat Mode:  you type messages -> Claude responds with AI text
+Bash Mode:  you type commands -> they execute in the shell
+                              -> output becomes part of conversation`}</CodeBlock>
+
+## Git and GitHub from day one
+
+<CodeBlock lang="bash" title="repo setup, start to push">{`git init                          # initialize Git locally
+git add .                         # stage all files
+git commit -m "initial commit"    # first commit
+git remote add origin https://github.com/YOUR_USERNAME/spendly.git
+git push origin main              # code lands on GitHub`}</CodeBlock>
+
+<Diagram caption="The workflow those five commands walk through." chart={`
+flowchart LR
+  W[working dir] -- "git add ." --> S[staging area]
+  S -- "git commit" --> L[local repo]
+  L -- "git push" --> G[(GitHub)]
+`} />
+
+## Explore before you code
+
+<Steps
+  caption="Three questions to ask Claude before touching anything."
+  items={[
+    { icon: "❓", label: "What is it?", note: "“What does this project do?” — Claude reads all files, gives a summary." },
+    { icon: "🧰", label: "What tech?", note: "“What tech does this project use?” — it analyses requirements.txt, app.py…" },
+    { icon: "🌳", label: "Structure?", note: "“Explain the project structure” — a tree-like hierarchy, explained." }
+  ]}
+/>
+
+## Free alternatives — Ollama
+
+<CodeBlock lang="bash" title="method 1 — cloud models (free tier)">{`curl -fsSL https://ollama.ai/install.sh | bash   # install Ollama
+ollama launch claude                              # launch Claude Code with it`}</CodeBlock>
+
+<CodeBlock lang="bash" title="method 2 — local models (fully free)">{`ollama pull qwen2.5-coder:7b   # download a model
+ollama launch claude           # then select your local model from the list`}</CodeBlock>
+
+<Chart data={[{ label: "3B", value: 4 }, { label: "7B", value: 8 }, { label: "14B", value: 16 }, { label: "32B+", value: 32 }]} valueLabel="min RAM (GB)" caption="RAM doubles with model size — 7B at 8 GB is the sweet spot." />
+
+| Model size | Min RAM | Performance |
+| --- | --- | --- |
+| 3B | 4 GB | Fast but less accurate |
+| 7B | 8 GB | Good balance |
+| 14B | 16 GB | Higher quality |
+| 32B+ | 32 GB+ | Best quality |
+
+| | Claude Pro | Ollama Cloud | Ollama Local |
+| --- | --- | --- | --- |
+| Cost | $20/month | Free (with limits) | Completely free |
+| Model quality | Best | Good | Depends on model |
+| Speed | Fast | Fast | Depends on hardware |
+| Usage limits | Generous | Strict weekly caps | Unlimited |
+| Internet | Required | Required | No (after download) |
+
+## Quick reference
+
+| Command | Does |
+| --- | --- |
+| `curl … \| bash` | Install Claude Code |
+| `claude` | Start Claude Code (paid) |
+| `claude --help` | Show help and options |
+| `Shift + !` | Toggle Bash Mode |
+| `/exit` | End the current session |
+
+## In 30 seconds
+
+- **Install** with one curl command; **run `claude` inside your project folder** — always.
+- Authorize in the browser **once**; ask **overview questions first**, before writing code.
+- **Bash Mode** (`Shift + !`) for shell commands; **Git from the start** — you'll deploy later.
+
+<Diagram caption="Which way in — paid quality or free trade-offs." chart={`
+flowchart TD
+  A{"budget?"} -- "$20/mo" --> B["Claude Pro"]
+  A -- free --> C{"beefy RAM?"}
+  C -- yes --> D["Ollama local"]
+  C -- no --> E["Ollama cloud"]
+`} />
