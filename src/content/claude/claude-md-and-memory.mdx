@@ -1,0 +1,221 @@
+---
+title: "CLAUDE.md and memory"
+domain: "claude"
+summary: "Claude wakes up with amnesia every session — CLAUDE.md and memory.md are the notes it reads before touching your code."
+tags: ["claude-code", "claude-md", "auto-memory", "context", "configuration"]
+difficulty: "intermediate"
+updated: "2026-07-30"
+icon: "📝"
+order: 6
+---
+
+<Analogy>
+CLAUDE.md is the sticky note on Claude's monitor — it wakes up with amnesia
+every session and reads that note first.
+</Analogy>
+
+<Steps
+  caption="The memory problem: LLMs are stateless, and Claude Code inherits it."
+  items={[
+    { icon: "🧠", label: "Stateless", note: "Yesterday's conversation? Gone today." },
+    { icon: "⌨️", label: "Re-explain", note: "Every new session: the whole project, from scratch." },
+    { icon: "😮‍💨", label: "Cumbersome", note: "Lots of typing, every single time." },
+    { icon: "🐛", label: "Error-prone", note: "Forget one detail → inconsistent code generation. Large projects become painful." },
+    { icon: "💡", label: "One file", note: "Store it all once; Claude auto-reads it each session. That file is CLAUDE.md." }
+  ]}
+/>
+
+<TLDR>
+- **CLAUDE.md** = a **persistent system prompt** for your project — a plain Markdown file auto-loaded at every session start.
+- The **.claude folder** is the config toolbox — **project-level or global** — for skills, commands, rules, sub-agents.
+- **memory.md** is **auto memory**: Claude writes it itself, silently, and re-reads it next session.
+</TLDR>
+
+## What is CLAUDE.md?
+
+A Markdown file in your project directory holding details, conventions and constraints — nothing technically fancy.
+
+<Diagram caption="Every new session, Claude Code pulls the file automatically — consistent code without re-explaining." chart={`
+flowchart LR
+  A([new session]) --> B{CLAUDE.md?}
+  B -- yes --> C[auto-load context]
+  C --> D[consistent code]
+  B -- no --> E[re-explain project]
+`} />
+
+## Creating it
+
+<Steps
+  linked={false}
+  caption="Two ways in — /init is the recommended starting point."
+  items={[
+    { icon: "✍️", label: "Manually", note: "Project root → new file named CLAUDE.md (must be CAPITALS) → fill it yourself." },
+    { icon: "⚡", label: "/init", note: "Claude Code scans your entire codebase and auto-generates it." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="the recommended way">{`> /init`}</CodeBlock>
+
+<Chart
+  data={[{ label: "/init gives you", value: 30 }, { label: "you write yourself", value: 70 }]}
+  valueLabel="% of a useful CLAUDE.md"
+  caption="Auto-generated is only ~30% useful — workflows, constraints, deployment targets, naming conventions and business logic are on you."
+/>
+
+## What an ideal one contains
+
+<Steps
+  linked={false}
+  caption="Six sections plus a bonus — the anatomy of a well-structured CLAUDE.md."
+  items={[
+    { icon: "🎯", label: "Overview", note: "One line: “FastAPI backend for a health-tracking app storing patient BMI records.”" },
+    { icon: "🏗️", label: "Architecture", note: "Routes in routers/, logic in services/, schemas in schemas/, persistence in repository/." },
+    { icon: "✒️", label: "Code style", note: "Type hints everywhere; Pydantic models for schemas; small, focused functions." },
+    { icon: "📦", label: "Libraries", note: "What tools to use — and what NOT to introduce." },
+    { icon: "⌨️", label: "Commands", note: "The exact run / test / maintain commands." },
+    { icon: "⚠️", label: "Critical rules", note: "“Don't touch database.py.” “Patient IDs come from the client — no auto UUIDs.”" },
+    { icon: "🗺️", label: "Roadmap", note: "Bonus: routes/features with a status column." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="the commands section, spelled out">{`# Install dependencies
+pip install -r requirements.txt
+# Run dev server
+uvicorn main:app --reload
+# Run tests
+pytest`}</CodeBlock>
+
+| Route | Status |
+| --- | --- |
+| `POST /patients` | Done |
+| `GET /patients/{id}` | Done |
+| `PUT /patients/{id}` | Pending |
+| `DELETE /patients/{id}` | Pending |
+
+## The .claude folder
+
+A local configuration directory — how Claude behaves for one project, or for all of them.
+
+| | Project-level | Global / user-level |
+| --- | --- | --- |
+| Location | `<project>/.claude/` | `~/.claude/` (home) |
+| Scope | This project only | Every project on your machine |
+| Shared with team | Yes (in the repo) | No (your machine only) |
+
+<CodeBlock lang="bash" title="what's inside">{`.claude/
+├── settings.local.json   # tool permissions (personal, not shared)
+├── commands/             # custom slash commands
+├── rules/                # split CLAUDE.md content (loaded lazily)
+├── skills/               # reusable task-specific skill files
+└── agents/               # sub-agent definitions`}</CodeBlock>
+
+## The 5 types of CLAUDE.md
+
+| File | Loaded | Shared? |
+| --- | --- | --- |
+| `./CLAUDE.md` (project root) | Every session | Yes — committed |
+| `./.claude/CLAUDE.md` | Every session | Yes — committed |
+| `./CLAUDE.local.md` (personal) | Every session | No — gitignored |
+| `~/.claude/CLAUDE.md` (global) | Every session, all projects | No — personal |
+| `./folder/CLAUDE.md` (subdir) | Lazy — when needed | Yes — committed |
+
+## Good practices
+
+| Do | Because |
+| --- | --- |
+| `/init`, then prune aggressively | It's a starting point — remove the noise |
+| Commit it to git | Treat it as part of the codebase |
+| Only universal things | Feature-specific rules don't belong here |
+| Use emphasis sparingly | See the callout below |
+| Keep it short — under 200 lines | More instructions → worse following; 200–300 is the ceiling |
+| Treat it as a living document | Refresh after every feature; build organically |
+| Correct once, then codify | Repeated mistake → add an instruction |
+| Audit periodically | Weekly/monthly — old rules turn counter-productive |
+
+<Callout type="warning">
+If everything is **IMPORTANT**, nothing is. People abuse it 10–12 times per file —
+reserve it for truly critical rules.
+</Callout>
+
+## When it outgrows 200 lines
+
+| Solution | Best for | Loading |
+| --- | --- | --- |
+| Split into `rules/` | Topic-based separation | Lazy — when topic needed |
+| `@` imports | Reusing existing docs | When file is referenced |
+| Subdirectory CLAUDE.md | Multi-area projects | Lazy — when in that folder |
+
+<CodeBlock lang="bash" title="solution 1 — split into .claude/rules/">{`.claude/rules/
+├── code-style.md
+├── testing.md
+├── security.md
+└── api-conventions.md`}</CodeBlock>
+
+<CodeBlock lang="md" title="solution 2 — @ imports">{`## API Conventions
+See @docs/api-guidelines.md
+
+## Git Workflow
+See @docs/contributing.md`}</CodeBlock>
+
+## Auto memory
+
+Claude's own notebook: as it works, it records learnings, patterns and insights — silently.
+
+<Steps
+  caption="Auto memory across two sessions — you never typed a thing."
+  items={[
+    { icon: "🔍", label: "Discovers", note: "Claude learns something about your project mid-session." },
+    { icon: "🤫", label: "Silently saves", note: "Written to memory.md — no prompt, no ceremony." },
+    { icon: "🌅", label: "New session", note: "memory.md is loaded at start…" },
+    { icon: "🧠", label: "Already knows", note: "…so it doesn't rediscover “project uses INR, not USD.”" }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="where memory.md lives">{`~/.claude/
+└── projects/
+    └── <your-project-name>/
+        └── memory/
+            └── memory.md    # ← here!
+# example content:
+# - This project uses IST (Indian Standard Time) timezone
+# - Project uses INR, not USD`}</CodeBlock>
+
+<Callout type="warning">
+Only the **top 200 lines** of memory.md load at session start — manage and prune it as it grows.
+</Callout>
+
+<CodeBlock lang="bash" title="adding memories manually">{`> Update your memory file. We use INR, not USD.
+> Based on whatever we discussed in this session, update your memory.md`}</CodeBlock>
+
+## The /memory command
+
+<CodeBlock lang="bash" title="one command, three doors">{`> /memory`}</CodeBlock>
+
+| Option | Opens |
+| --- | --- |
+| Project Memory | Your project's `CLAUDE.md` |
+| User Memory | The home-directory `~/.claude/CLAUDE.md` |
+| Open Auto Memory Folder | The `memory.md` file |
+
+All three are memory files — the only difference is **who writes them**:
+
+| File | Who writes it | What it is |
+| --- | --- | --- |
+| `CLAUDE.md` (project) | The programmer | Project-level memory |
+| `CLAUDE.md` (user) | The programmer | Personal/global memory |
+| `memory.md` | Claude itself | Auto-learned memory |
+
+## In 30 seconds
+
+<Diagram caption="Where an instruction should live." chart={`
+flowchart TD
+  A{who writes it?} -- Claude --> B[memory.md]
+  A -- you --> C{scope?}
+  C -- one project --> D[./CLAUDE.md]
+  C -- all projects --> E[~/.claude/CLAUDE.md]
+  C -- just me --> F[CLAUDE.local.md]
+`} />
+
+- **CLAUDE.md** = persistent system prompt; `/init` gives ~30%, you write the other 70%.
+- Keep it **under 200 lines**; overflow into `.claude/rules/`, `@` imports, or subdirectory files.
+- **memory.md** = Claude's auto-learned memory — top 200 lines load; `/memory` opens all three files.
