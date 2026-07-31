@@ -1,0 +1,229 @@
+---
+title: "The context window"
+domain: "claude"
+summary: "Claude's memory is ~200k tokens (only ~150k usable) — and every message re-sends the entire conversation, so cost grows quadratically."
+tags: ["claude-code", "context-window", "tokens", "compaction", "sub-agents"]
+difficulty: "intermediate"
+updated: "2026-07-30"
+icon: "🪟"
+order: 5
+---
+
+<Analogy>
+Every message you send secretly re-mails the entire conversation — the longer
+the thread, the heavier every envelope.
+</Analogy>
+
+<Diagram caption="Everything Claude knows right now must fit in one ~200k-token window — and the reply gets re-sent next turn." chart={`
+flowchart LR
+  A[Prompts] --> W[(Context window)]
+  B[Files read] --> W
+  C[Tool output] --> W
+  W --> R[Reply]
+  R -. re-sent next turn .-> W
+`} />
+
+<TLDR>
+- The **context window** is Claude's working memory: ~**200k tokens**, but only ~**150k usable**.
+- LLMs are **stateless** — each turn re-sends the whole history, so tokens grow **quadratically**.
+- The antidote is discipline: **one session per feature**, proactive **/compact**, **sub-agents** for side work.
+</TLDR>
+
+## Where context comes from
+
+Context = all the information needed to understand something correctly — and in a real project it leaks in from everywhere.
+
+| Source | What it contains |
+| --- | --- |
+| Codebase | Functions, folder structure, conventions, dependencies |
+| PRD / spec | Requirements, user stories, acceptance criteria, edge cases |
+| JIRA / GitHub issues | Task definitions, back-and-forth decisions in comments |
+| Slack / messages | Decisions made in passing, warnings about fragile code |
+| Previous AI chats | Explored approaches, decisions already made with Claude |
+| Git history / PRs | Past decisions, reverted attempts, review comments |
+
+## The window — key facts
+
+A context window is how much a model can see and remember **at one time**, measured in tokens. It can't hold infinite context.
+
+<Steps
+  linked={false}
+  caption="Four facts that explain everything below."
+  items={[
+    { icon: "📏", label: "~200k tokens", note: "For Sonnet models; Opus 4.6 reportedly has a 1M window." },
+    { icon: "🆕", label: "Fresh per session", note: "Every new session starts with a completely empty window." },
+    { icon: "↔️", label: "Both sides count", note: "Your prompts and pasted code are input tokens; Claude's replies and tool outputs are output tokens." },
+    { icon: "6️⃣", label: "Replies cost more", note: "Claude's replies burn roughly 6× more tokens than your messages." }
+  ]}
+/>
+
+## The quadratic growth problem
+
+LLMs are **stateless** — every new message ships the *entire* conversation history plus itself.
+
+<Chart
+  valueLabel="tokens sent that turn"
+  caption="Each block = 200 tokens. Turn 10 sends History(T1…T9) + Message 10 — 2,000 tokens to say one thing."
+  data={[
+    { label: "Turn 1", value: 200 },
+    { label: "Turn 2", value: 400 },
+    { label: "Turn 3", value: 600 },
+    { label: "Turn 5", value: 1000 },
+    { label: "Turn 10", value: 2000 }
+  ]}
+/>
+
+<Formula
+  tex={"\\text{total tokens} = \\frac{n(n+1)}{2} \\times b"}
+  caption="10 turns of 200-token blocks = 55 × 200 = 11,000 tokens. Linear would be 2,000 — the real cost is 5.5× higher."
+/>
+
+## One long session vs fresh sessions
+
+| Scenario | Formula | Total |
+| --- | --- | --- |
+| One 40-turn session (4 features) | 40 × 41 / 2 | **820 units** |
+| Four 10-turn sessions | 4 × (10 × 11 / 2) | **220 units** |
+
+<Chart
+  valueLabel="token units"
+  caption="Savings = (820 − 220) / 820 ≈ 73%. Fresh sessions per feature cost ~4× less — and give Claude a cleaner, focused context."
+  data={[
+    { label: "One 40-turn session", value: 820 },
+    { label: "Four 10-turn sessions", value: 220 }
+  ]}
+/>
+
+## What actually fills the 200k
+
+Of the advertised 200k, only ~**150k is usable** — the rest is spoken for before you type a word.
+
+| Component | Tokens | Note |
+| --- | --- | --- |
+| System prompt | ~6,000 (fixed) | Pre-loaded by the Claude Code team |
+| Tool schemas | ~8,000 (fixed) | All tool schemas load at start |
+| CLAUDE.md | Tiny, persistent | Project overview file |
+| Conversation history | ~45% in long sessions | Claude's replies are the main culprit |
+| Tool results | Variable | Every file read, every bash output |
+| Skills + MCP schemas | Loads at startup | Custom skills and MCP tools |
+| Auto-compact buffer | ~33,000 (reserved) | Pre-reserved for compaction summaries |
+
+<Formula
+  tex={"200k - 6k - 8k - 33k - \\text{overhead} \\approx 150k \\text{ usable}"}
+  caption="The advertised window minus the fixed overhead is what you actually get."
+/>
+
+<CodeBlock lang="bash" title="check your usage anytime">{`/context`}</CodeBlock>
+
+## Why management matters
+
+<Steps
+  linked={false}
+  caption="Three reasons this isn't optional."
+  items={[
+    { icon: "💸", label: "Cost", note: "More tokens = higher bill. Burn 4× more tokens, pay 4× more." },
+    { icon: "🔁", label: "Workflow", note: "Quadratic growth forces you to think in sessions-per-feature." },
+    { icon: "📉", label: "Quality", note: "At ~120k–130k of the ~150k usable, Claude visibly degrades — forgets instructions, makes more errors." }
+  ]}
+/>
+
+## When the window fills up
+
+<Steps
+  caption="Four stages, each worse than the last."
+  items={[
+    { icon: "📉", label: "Quality dips", note: "Before any limit — responses get unreliable around ~120k–130k tokens." },
+    { icon: "🗜️", label: "Auto-compaction", note: "At ~75–92% full, Claude automatically summarises the whole history." },
+    { icon: "🧟", label: "Corruption", note: "Information loss compounds with each compaction round." },
+    { icon: "🛑", label: "Hard stop", note: "Once the 33k buffer is full, Claude Code refuses to continue." }
+  ]}
+/>
+
+## Auto-compaction, explained
+
+The built-in safety valve against overflow — helpful, but it fires on its own schedule.
+
+<Steps
+  caption="What happens under the hood."
+  items={[
+    { icon: "👀", label: "Monitor", note: "Claude watches how full the context window is." },
+    { icon: "⚖️", label: "~75–92% hit", note: "It automatically summarises the conversation history." },
+    { icon: "📦", label: "33k buffer", note: "The summary lands in the reserved buffer space." },
+    { icon: "🧹", label: "Space freed", note: "The original conversation history is released." }
+  ]}
+/>
+
+<Callout type="warning">
+The catch: it's **lossy** (summaries drop detail), it triggers **mid-task**
+(possibly during a critical feature), and it's **beyond your control**.
+</Callout>
+
+## The three fixes
+
+<CodeBlock lang="bash" title="fix 1 — compact on YOUR schedule">{`/compact   # same as auto-compaction, but you pick the moment`}</CodeBlock>
+
+<Callout type="tip">
+Run `/context` periodically. At ~70–75% usage, run `/compact` **between tasks,
+never mid-feature** — then review the summary with `Ctrl+O`.
+</Callout>
+
+<Diagram caption="Fix 2 — each sub-agent gets its own fresh, isolated 200k window, runs in parallel, and returns only a summary." chart={`
+flowchart TD
+  M[Main agent] --> A[Sub-agent A]
+  M --> B[Sub-agent B]
+  A -. summary .-> M
+  B -. summary .-> M
+`} />
+
+<CodeBlock lang="bash" title="fix 3 — the nuclear option">{`/clear   # deletes all conversation history in the current session`}</CodeBlock>
+
+| Method | What it does | When to use |
+| --- | --- | --- |
+| `/compact` | Summarises history, frees space | Proactively at ~70–75% usage |
+| Sub-agent | Fresh isolated 200k for a task | Parallel / isolated / exploratory work |
+| `/clear` | Deletes all history | Nuclear reset within the same session |
+| New session | Completely fresh 200k | Start of each new feature |
+
+## Good practices
+
+<Steps
+  linked={false}
+  caption="Five habits that keep the window lean."
+  items={[
+    { icon: "1️⃣", label: "One feature", note: "Never develop multiple features in a single session." },
+    { icon: "🗜️", label: "Compact early", note: "Check /context often; /compact at ~70–75% usage." },
+    { icon: "🎯", label: "Focused prompts", note: "Vague prompts trigger long exploratory replies — a token bonfire." },
+    { icon: "🤖", label: "Delegate", note: "Any independent task goes to a sub-agent." },
+    { icon: "🙈", label: ".claudeignore", note: "Tell Claude which files to never read into context." }
+  ]}
+/>
+
+<CodeBlock lang="bash" title="example .claudeignore">{`node_modules/
+.venv/
+dist/
+build/
+*.log
+.env`}</CodeBlock>
+
+## Terminal vs GUI
+
+Advanced features — memory editing, hooks, sub-agent management — need the terminal.
+
+| Access method | Verdict |
+| --- | --- |
+| Terminal (CLI) | Original, most powerful — full access to all features |
+| VS Code extension | Convenient but limited |
+| Claude Desktop app | Comfortable but restricted |
+| Web interface | Limited for power users |
+
+## In 30 seconds
+
+Every message contains the **entire history** — growth is **quadratic**, not linear. The antidote is discipline.
+
+<Diagram caption="Which lever to pull, by situation." chart={`
+flowchart TD
+  A{"context state?"} -- "new feature" --> B["new session"]
+  A -- "~70–75% full" --> C["/compact"]
+  A -- "side quest" --> D["sub-agent"]
+  A -- "hopeless mess" --> E["/clear"]
+`} />
